@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA Regression Report — PeConnect CPaaS · UAT · Sprint 8</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0d1117; --ink-2:#24292f; --ink-3:#57606a;
+  --surface:#f6f8fa; --surface-2:#ffffff;
+  --border:#d0d7de; --border-light:#eaeef2;
+  --pass:#1a7f37; --pass-bg:#dafbe1; --pass-accent:#2da44e;
+  --skip:#7d4e00; --skip-bg:#fff8c5; --skip-accent:#bf8700;
+  --fail:#cf222e; --fail-bg:#ffebe9; --fail-accent:#cf222e;
+  --accent:#0969da; --accent-bg:#ddf4ff;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(27,31,36,.12),0 8px 24px rgba(66,74,83,.06);
+  --shadow-sm:0 1px 2px rgba(27,31,36,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--ink);line-height:1.5;font-size:14px;}
+
+/* ── HERO ─────────────────────────────────────────────────── */
+.hero{background:var(--ink);padding:48px 0 0;width:100%;overflow:hidden;}
+.hero-inner{max-width:1200px;margin:0 auto;padding:0 40px;position:relative;}
+.hero-inner::before{content:'';position:fixed;top:0;left:0;right:0;height:260px;background:repeating-linear-gradient(-45deg,transparent,transparent 24px,rgba(255,255,255,.018) 24px,rgba(255,255,255,.018) 25px);pointer-events:none;z-index:0;}
+.hero-meta{display:flex;gap:0;flex-wrap:wrap;padding:0;border-top:1px solid rgba(255,255,255,.08);position:relative;z-index:1;}
+.meta-item{padding:14px 28px 14px 0;}
+.meta-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;margin-bottom:3px;}
+.meta-value{font-size:13.5px;color:rgba(255,255,255,.9);font-weight:500;white-space:nowrap;}
+.meta-value.all-pass{color:#3fb950;font-weight:700;}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:4px 14px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.65);font-family:'DM Mono',monospace;margin-bottom:16px;position:relative;z-index:1;}
+.hero-tag::before{content:'●';color:#3fb950;font-size:8px;}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(28px,3.8vw,50px);line-height:1.12;color:#fff;margin-bottom:10px;position:relative;z-index:1;}
+.hero-title em{font-style:italic;color:rgba(255,255,255,.42);}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.46);margin-bottom:28px;font-weight:300;max-width:580px;position:relative;z-index:1;}
+
+/* ── KPI STRIP ────────────────────────────────────────────── */
+.kpi-strip{background:#fff;border-bottom:1px solid var(--border);}
+.kpi-grid{max-width:1200px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:repeat(5,1fr);}
+.kpi-cell{padding:24px 20px;text-align:center;position:relative;}
+.kpi-cell+.kpi-cell::before{content:'';position:absolute;left:0;top:14%;height:72%;width:1px;background:var(--border-light);}
+.kpi-num{font-family:'DM Serif Display',serif;font-size:40px;line-height:1;margin-bottom:4px;}
+.kpi-num.t{color:var(--ink)}.kpi-num.p{color:var(--pass)}.kpi-num.s{color:var(--skip)}.kpi-num.f{color:var(--fail)}.kpi-num.r{color:var(--accent)}
+.kpi-lbl{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;}
+.kpi-line{height:3px;width:44px;border-radius:2px;margin:8px auto 0;}
+.kpi-line.t{background:var(--ink-2)}.kpi-line.p{background:var(--pass-accent)}.kpi-line.s{background:var(--skip-accent)}.kpi-line.f{background:var(--fail-accent)}.kpi-line.r{background:var(--accent)}
+
+/* ── TOOLBAR ─────────────────────────────────────────────── */
+.toolbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:0;z-index:200;box-shadow:var(--shadow-sm);}
+.toolbar-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.toolbar-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-family:'DM Mono',monospace;flex-shrink:0;}
+.filter-group{display:flex;gap:5px;flex-wrap:wrap;}
+.fpill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--ink-3);font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.fpill:hover{border-color:var(--ink-3);}
+.fpill.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.fpill.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.fpill.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.fpill.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.fdot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.fdot.p{background:var(--pass-accent)}.fdot.s{background:var(--skip-accent)}.fdot.f{background:var(--fail-accent)}
+.search-box{position:relative;flex:1;min-width:180px;max-width:300px;}
+.search-box svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none;}
+#q{width:100%;padding:6px 10px 6px 30px;border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;transition:border-color .15s;}
+#q:focus{border-color:var(--accent);}
+.btn-sm{padding:5px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:11.5px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--ink-3);transition:all .15s;font-weight:500;white-space:nowrap;}
+.btn-sm:hover{background:var(--surface);border-color:var(--ink-3);}
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.layout{max-width:1200px;margin:0 auto;padding:28px 40px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;}
+
+/* ── MODULE CARD ─────────────────────────────────────────── */
+.mod-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.mod-card.card-hidden{display:none;}
+
+/* Module header */
+.mod-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 22px;background:var(--surface);border-bottom:1px solid var(--border-light);cursor:pointer;user-select:none;}
+.mod-hdr:hover{background:#edf0f3;}
+.mod-hdr-left{display:flex;align-items:flex-start;gap:11px;flex:1;}
+.mod-icon{font-size:20px;line-height:1;padding-top:2px;flex-shrink:0;}
+.mod-title{font-weight:700;font-size:14.5px;color:var(--ink);margin-bottom:2px;}
+.mod-desc{font-size:11.5px;color:var(--ink-3);line-height:1.5;max-width:480px;}
+.mod-kpis{display:flex;border:1px solid var(--border-light);border-radius:8px;overflow:hidden;flex-shrink:0;margin-top:2px;}
+.mk{padding:7px 13px;text-align:center;border-right:1px solid var(--border-light);}
+.mk:last-child{border-right:none;}
+.mk-t{background:var(--surface);} .mk-p{background:var(--pass-bg);} .mk-s{background:var(--skip-bg);}
+.mk-num{font-family:'DM Serif Display',serif;font-size:19px;line-height:1;}
+.mk-t .mk-num{color:var(--ink);} .mk-p .mk-num{color:var(--pass);} .mk-s .mk-num{color:var(--skip);}
+.mk-lbl{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin-top:1px;}
+.mk-p .mk-lbl{color:var(--pass);} .mk-s .mk-lbl{color:var(--skip);}
+.mod-chevron{font-size:12px;color:var(--ink-3);flex-shrink:0;margin-top:4px;transition:transform .2s;}
+.mod-chevron.open{transform:rotate(90deg);}
+
+/* Module body (collapsible) */
+.mod-body{display:block;}
+.mod-body.collapsed{display:none;}
+
+/* ── SUITE TABS ──────────────────────────────────────────── */
+.suite-tabs{display:flex;gap:0;overflow-x:auto;padding:0 22px;background:#fff;border-bottom:1px solid var(--border-light);scrollbar-width:thin;}
+.suite-tabs::-webkit-scrollbar{height:3px;}
+.suite-tabs::-webkit-scrollbar-thumb{background:var(--border);}
+.stab{display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--ink-3);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;transition:all .15s;user-select:none;flex-shrink:0;}
+.stab:hover{color:var(--ink);}
+.stab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+/* Tab badges */
+.tbg{font-size:10px;padding:1px 6px;border-radius:10px;font-family:'DM Mono',monospace;font-weight:600;line-height:1.4;}
+.tbg-p{background:var(--pass-bg);color:var(--pass);}
+.tbg-s{background:var(--skip-bg);color:var(--skip);}
+
+/* ── SUITE PANEL ─────────────────────────────────────────── */
+.suite-panel{display:none;}
+.suite-panel.active{display:block;}
+
+/* Status filter bar inside suite */
+.sf-bar{display:flex;align-items:center;gap:6px;padding:9px 22px;border-bottom:1px solid var(--border-light);background:var(--surface);flex-wrap:wrap;}
+.sf-btn{padding:3px 11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Mono',monospace;transition:all .12s;color:var(--ink-3);}
+.sf-btn.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.sf-btn.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.sf-btn.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.sf-btn.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.sf-count{font-size:11px;color:var(--ink-3);margin-left:auto;font-family:'DM Mono',monospace;}
+
+/* Test rows */
+.test-list{}
+.trow{display:flex;align-items:center;gap:10px;padding:7px 22px;border-bottom:1px solid var(--border-light);transition:background .1s;}
+.trow:last-child{border-bottom:none;}
+.trow:hover{background:#f8fafc;}
+.trow.row-hidden{display:none;}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tdot.p{background:var(--pass-accent);} .tdot.s{background:var(--skip-accent);} .tdot.f{background:var(--fail-accent);}
+.tname{flex:1;font-size:12.5px;color:var(--ink-2);line-height:1.4;}
+.tc-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);margin-right:4px;}
+.t-badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;flex-shrink:0;}
+.t-badge.p{background:var(--pass-bg);color:var(--pass);}
+.t-badge.s{background:var(--skip-bg);color:var(--skip);}
+.t-badge.f{background:var(--fail-bg);color:var(--fail);}
+.tdur{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);flex-shrink:0;min-width:52px;text-align:right;}
+.no-match{padding:24px;text-align:center;color:var(--ink-3);font-size:12.5px;font-style:italic;display:none;}
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  position:sticky;
+  top:52px;
+  align-self:start;
+  max-height:calc(100vh - 64px);
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.scard{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
+.sc-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--ink);margin-bottom:3px;}
+.sc-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:16px;}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+.leg-row{display:flex;align-items:center;gap:7px;font-size:12.5px;}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.leg-dot.p{background:var(--pass-accent);} .leg-dot.s{background:var(--skip-accent);} .leg-dot.f{background:var(--fail-accent);}
+.leg-lbl{flex:1;color:var(--ink-3);}
+.leg-cnt{font-weight:700;font-family:'DM Mono',monospace;}
+
+/* Summary */
+.zero-box{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--pass-bg);border-radius:8px;border:1px solid #a7f3c0;margin-bottom:13px;}
+.sum-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light);font-size:12.5px;}
+.sum-row:last-child{border-bottom:none;}
+.sum-k{color:var(--ink-3);}
+.sum-v{font-weight:700;font-family:'DM Mono',monospace;}
+
+/* Env */
+.env-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--pass-bg);color:var(--pass);border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.env-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border-light);}
+.env-row:last-child{border-bottom:none;}
+.env-k{color:var(--ink-3);}
+.env-v{font-weight:500;font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">PeConnect CPaaS &middot; QA Regression &middot; UAT &middot; Sprint 8</div>
+    <h1 class="hero-title">Post-Release <em>Regression Report</em></h1>
+    <p class="hero-sub">Complete end-to-end cycle — Regression, Sanity &amp; API — validated on UAT prior to today's production release.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="meta-label">Executed</div><div class="meta-value">08 Jun 2026</div></div>
+      <div class="meta-item"><div class="meta-label">Environment</div><div class="meta-value">UAT</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">CPaaS &mdash; PeConnect</div></div>
+      <div class="meta-item"><div class="meta-label">Browser</div><div class="meta-value">Firefox</div></div>
+      <div class="meta-item"><div class="meta-label">Sprint</div><div class="meta-value">Sprint 8</div></div>
+      <div class="meta-item"><div class="meta-label">Duration</div><div class="meta-value">28.1 min</div></div>
+      <div class="meta-item"><div class="meta-label">Tester</div><div class="meta-value">Ashutosh Kumar</div></div>
+      <div class="meta-item"><div class="meta-label">Overall Status</div><div class="meta-value all-pass">&#10003; ALL PASS</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- KPI STRIP -->
+<section class="kpi-strip">
+  <div class="kpi-grid">
+    <div class="kpi-cell"><div class="kpi-num t">275</div><div class="kpi-lbl">Total Tests</div><div class="kpi-line t"></div></div>
+    <div class="kpi-cell"><div class="kpi-num p">261</div><div class="kpi-lbl">Passed</div><div class="kpi-line p"></div></div>
+    <div class="kpi-cell"><div class="kpi-num s">14</div><div class="kpi-lbl">Skipped</div><div class="kpi-line s"></div></div>
+    <div class="kpi-cell"><div class="kpi-num f">0</div><div class="kpi-lbl">Failed</div><div class="kpi-line f"></div></div>
+    <div class="kpi-cell"><div class="kpi-num r">100%</div><div class="kpi-lbl">Pass Rate</div><div class="kpi-line r"></div></div>
+  </div>
+</section>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <span class="toolbar-label">Filter:</span>
+    <div class="filter-group">
+      <button class="fpill on-all" data-gf="all" onclick="globalFilter('all',this)">All &nbsp;<span id="cnt-all">275</span></button>
+      <button class="fpill" data-gf="pass" onclick="globalFilter('pass',this)"><span class="fdot p"></span>&nbsp;Passed &nbsp;<span id="cnt-pass">261</span></button>
+      <button class="fpill" data-gf="skip" onclick="globalFilter('skip',this)"><span class="fdot s"></span>&nbsp;Skipped &nbsp;<span id="cnt-skip">14</span></button>
+      <button class="fpill" data-gf="fail" onclick="globalFilter('fail',this)"><span class="fdot f"></span>&nbsp;Failed &nbsp;<span>0</span></button>
+    </div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M11.5 7a4.499 4.499 0 11-8.998 0A4.499 4.499 0 0111.5 7zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/></svg>
+      <input id="q" placeholder="Search test cases..." oninput="onSearch(this.value)">
+    </div>
+    <button class="btn-sm" onclick="toggleAll()">Collapse All</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <div id="mod-col"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="scard">
+      <div class="sc-title">Result Distribution</div>
+      <p class="sc-sub">Breakdown of 275 tests</p>
+      <div class="donut-wrap">
+        <svg width="110" height="110" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#eaeef2" stroke-width="20"/>
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#2da44e" stroke-width="20"
+            stroke-dasharray="329.3 345.6" stroke-dashoffset="86.4" transform="rotate(-90 75 75)"/>
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#bf8700" stroke-width="20"
+            stroke-dasharray="16.3 345.6" stroke-dashoffset="-242.9" transform="rotate(-90 75 75)"/>
+          <text x="75" y="70" text-anchor="middle" font-size="22" font-weight="700" fill="#0d1117" font-family="Georgia,serif">261</text>
+          <text x="75" y="87" text-anchor="middle" font-size="10" fill="#57606a" font-family="Arial,sans-serif">passed</text>
+        </svg>
+        <div class="legend">
+          <div class="leg-row"><div class="leg-dot p"></div><span class="leg-lbl">Passed</span><span class="leg-cnt" style="color:var(--pass)">261</span></div>
+          <div class="leg-row"><div class="leg-dot s"></div><span class="leg-lbl">Skipped</span><span class="leg-cnt" style="color:var(--skip)">14</span></div>
+          <div class="leg-row"><div class="leg-dot f"></div><span class="leg-lbl">Failed</span><span class="leg-cnt" style="color:var(--fail)">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Run Summary</div>
+      <div class="zero-box">
+        <span style="font-size:18px;">&#128737;&#65039;</span>
+        <div>
+          <div style="font-weight:700;color:var(--pass);font-size:12.5px;margin-bottom:1px;">Zero Defects Detected</div>
+          <div style="color:var(--pass);font-size:11.5px;">All executable tests passed cleanly</div>
+        </div>
+      </div>
+      <div class="sum-row"><span class="sum-k">Total tests</span><span class="sum-v">275</span></div>
+      <div class="sum-row"><span class="sum-k">Passed</span><span class="sum-v" style="color:var(--pass)">261</span></div>
+      <div class="sum-row"><span class="sum-k">Skipped</span><span class="sum-v" style="color:var(--skip)">14</span></div>
+      <div class="sum-row"><span class="sum-k">Failed</span><span class="sum-v" style="color:var(--fail)">0</span></div>
+      <div class="sum-row"><span class="sum-k">Pass rate</span><span class="sum-v" style="color:var(--accent)">100%</span></div>
+      <div class="sum-row"><span class="sum-k">Sprint</span><span class="sum-v">Sprint 8</span></div>
+      <div class="sum-row"><span class="sum-k">Duration</span><span class="sum-v">28.1 min</span></div>
+      <div class="sum-row"><span class="sum-k">Tester</span><span class="sum-v">Ashutosh Kumar</span></div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Environment</div>
+      <div class="env-badge">&#10003; UAT</div>
+      <div class="env-row"><span class="env-k">Platform</span><span class="env-v">CPaaS — PeConnect</span></div>
+      <div class="env-row"><span class="env-k">Framework</span><span class="env-v">Playwright / TS</span></div>
+      <div class="env-row"><span class="env-k">Browser</span><span class="env-v">Firefox</span></div>
+      <div class="env-row"><span class="env-k">Suites</span><span class="env-v">Regression · Sanity · API</span></div>
+      <div class="env-row"><span class="env-k">Spec files</span><span class="env-v">18</span></div>
+      <div class="env-row"><span class="env-k">Run date</span><span class="env-v">08 Jun 2026</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const R = {"stats": {"total": 275, "pass": 261, "skip": 14, "fail": 0}, "modules": [{"name": "Authentication", "icon": "🔐", "desc": "Login flows, OTP/2FA, session management and password reset.", "suites": [{"label": "Auth Setup", "file": "setup/auth.setup.ts", "tests": [{"title": "authenticate", "outcome": "expected", "duration": 3911, "status": "pass"}]}, {"label": "Login Regression", "file": "regression/auth/login-regression.spec.ts", "tests": [{"title": "TC005 - Login fields are empty on fresh page load", "outcome": "expected", "duration": 2680, "status": "pass"}]}, {"label": "2FA Regression", "file": "regression/auth/two-factor-auth-regression.spec.ts", "tests": [{"title": "TC006 - User can return to login page from 2FA page", "outcome": "expected", "duration": 2434, "status": "pass"}, {"title": "TC007 - OTP screen shows masked email", "outcome": "expected", "duration": 2374, "status": "pass"}, {"title": "TC008 - OTP expiry countdown timer is visible", "outcome": "expected", "duration": 2334, "status": "pass"}, {"title": "TC009 - Resend button is disabled for first 30 seconds", "outcome": "expected", "duration": 2525, "status": "pass"}, {"title": "TC010 - OTP field does not accept more than 6 characters", "outcome": "expected", "duration": 2473, "status": "pass"}, {"title": "TC011 - Browser back from OTP screen does not break app", "outcome": "expected", "duration": 2412, "status": "pass"}, {"title": "TC012 - Verify OTP button disabled or shows error when OTP is empty", "outcome": "expected", "duration": 2630, "status": "pass"}]}, {"label": "Login Management", "file": "regression/login-management/login.spec.ts", "tests": [{"title": "TC_CPS_1 - Valid login redirects to OTP verification page", "outcome": "expected", "duration": 2347, "status": "pass"}, {"title": "TC_CPS_2 - Invalid username shows error message", "outcome": "expected", "duration": 1965, "status": "pass"}, {"title": "TC_CPS_3 - Empty username and password shows validation messages", "outcome": "expected", "duration": 1504, "status": "pass"}, {"title": "TC_CPS_4 - Empty password with valid username shows password validation", "outcome": "expected", "duration": 1720, "status": "pass"}, {"title": "TC_CPS_5 - Empty username with valid password shows username validation", "outcome": "expected", "duration": 1511, "status": "pass"}, {"title": "TC_CPS_6 - Username field shows placeholder \"Enter username\"", "outcome": "expected", "duration": 1336, "status": "pass"}, {"title": "TC_CPS_7 - Password input is masked (type=\"password\")", "outcome": "expected", "duration": 1369, "status": "pass"}, {"title": "TC_CPS_8 - Eye icon toggles password visibility", "outcome": "expected", "duration": 1625, "status": "pass"}, {"title": "TC_CPS_9 - Clicking \"Forgot password\" opens Reset Password page", "outcome": "expected", "duration": 1610, "status": "pass"}, {"title": "TC_CPS_10 - Forgot password with valid email shows confirmation modal", "outcome": "expected", "duration": 2089, "status": "pass"}, {"title": "TC_CPS_11 - Forgot password with invalid email format shows validation", "outcome": "expected", "duration": 1636, "status": "pass"}, {"title": "TC_CPS_12 - Forgot password with empty email shows \"Email is required\"", "outcome": "expected", "duration": 1697, "status": "pass"}, {"title": "TC_CPS_13 - Reset email has correct branding and content", "outcome": "skipped", "duration": 4, "status": "skip"}, {"title": "TC_CPS_14 - Clicking reset link in email opens Set New Password page", "outcome": "skipped", "duration": 2, "status": "skip"}, {"title": "TC_CPS_15 - Active reset link opens Set New Password page", "outcome": "skipped", "duration": 672, "status": "skip"}, {"title": "TC_CPS_16 - Expired reset link shows expiry message", "outcome": "skipped", "duration": 4, "status": "skip"}, {"title": "TC_CPS_17 - Set New Password page shows password policy hint", "outcome": "skipped", "duration": 508, "status": "skip"}, {"title": "TC_CPS_18 - Mismatched confirm password shows \"Passwords do not match\"", "outcome": "skipped", "duration": 514, "status": "skip"}, {"title": "TC_CPS_19 - Eye icons toggle visibility on Set New Password page", "outcome": "skipped", "duration": 525, "status": "skip"}, {"title": "TC_CPS_20 - Clicking Reset Password with empty fields shows validation", "outcome": "skipped", "duration": 514, "status": "skip"}, {"title": "TC_CPS_21 - Password not following policy shows validation message", "outcome": "skipped", "duration": 769, "status": "skip"}, {"title": "TC_CPS_22 - Valid password reset shows success toast and redirects to login", "outcome": "skipped", "duration": 639, "status": "skip"}, {"title": "TC_CPS_23 - After password reset, user is redirected to login page", "outcome": "skipped", "duration": 522, "status": "skip"}]}, {"label": "Login Sanity", "file": "sanity/login-sanity.spec.ts", "tests": [{"title": "TC_CPS_1 - Login page loads with all required elements", "outcome": "expected", "duration": 1563, "status": "pass"}, {"title": "TC_CPS_2 - Invalid credentials keep user on login page", "outcome": "expected", "duration": 1736, "status": "pass"}, {"title": "TC_CPS_3 - Empty username and password shows validation messages", "outcome": "expected", "duration": 1615, "status": "pass"}, {"title": "TC_CPS_4 - Valid login redirects to OTP verification page", "outcome": "expected", "duration": 2395, "status": "pass"}, {"title": "TC_CPS_5 - Forgot password with valid email shows confirmation modal", "outcome": "expected", "duration": 1989, "status": "pass"}, {"title": "TC_CPS_6 - Valid password reset shows success toast and redirects to login", "outcome": "skipped", "duration": 763, "status": "skip"}]}, {"label": "2FA Sanity", "file": "sanity/two-factor-auth.spec.ts", "tests": [{"title": "TC004 - 2FA page loads after valid credentials", "outcome": "expected", "duration": 2378, "status": "pass"}]}]}, {"name": "Auth API", "icon": "🔌", "desc": "API-layer security: HTTPS, session reuse, OTP leak detection, rate limiting.", "suites": [{"label": "Auth API", "file": "api/2fa.spec.ts", "tests": [{"title": "TC016 - SessionId not reusable after successful login", "outcome": "expected", "duration": 1113, "status": "pass"}, {"title": "TC017 - All API calls use HTTPS", "outcome": "expected", "duration": 477, "status": "pass"}, {"title": "TC018 - OTP not present in authenticate API response", "outcome": "expected", "duration": 538, "status": "pass"}, {"title": "TC019 - Account locked after 3 wrong OTP attempts", "outcome": "expected", "duration": 1418, "status": "pass"}, {"title": "TC020 - Rate limit on rapid verify-otp calls", "outcome": "expected", "duration": 1552, "status": "pass"}]}]}, {"name": "Template List", "icon": "📋", "desc": "Template listing: columns, status badges, action icons, filters, search, pagination.", "suites": [{"label": "Template List Regression", "file": "regression/template-management/template-list.spec.ts", "tests": [{"title": "TC_TL_001 - Template list page loads with all 9 columns, valid data, correct formats", "outcome": "expected", "duration": 2272, "status": "pass"}, {"title": "TC_TL_002 - APPROVED status badge is visible with correct styling", "outcome": "expected", "duration": 2430, "status": "pass"}, {"title": "TC_TL_003 - APPROVED row has view + edit + delete icons", "outcome": "expected", "duration": 2118, "status": "pass"}, {"title": "TC_TL_005 - Exact name search returns matching template", "outcome": "expected", "duration": 5184, "status": "pass"}, {"title": "TC_TL_006 - Final category filter: Marketing shows only MARKETING rows", "outcome": "expected", "duration": 2980, "status": "pass"}, {"title": "TC_TL_007 - Final category filter: Utility shows only UTILITY rows", "outcome": "expected", "duration": 3199, "status": "pass"}, {"title": "TC_TL_008 - Status filter: Approved shows only APPROVED rows", "outcome": "expected", "duration": 3523, "status": "pass"}, {"title": "TC_TL_009 - Status filter: Pending shows only PENDING rows (or empty state)", "outcome": "expected", "duration": 3281, "status": "pass"}, {"title": "TC_TL_010 - Status filter: Rejected shows only REJECTED rows", "outcome": "expected", "duration": 3344, "status": "pass"}, {"title": "TC_TL_011 - Status dropdown has correct options and count (no DELETED, no extras)", "outcome": "expected", "duration": 2672, "status": "pass"}, {"title": "TC_TL_012 - Date range filter shows templates in range", "outcome": "expected", "duration": 3012, "status": "pass"}, {"title": "TC_TL_013 - From Date greater than To Date blocks search", "outcome": "expected", "duration": 2401, "status": "pass"}, {"title": "TC_TL_014 - Combined filters: name + status work together", "outcome": "expected", "duration": 4446, "status": "pass"}, {"title": "TC_TL_015 - Reset clears all filters and reloads full list", "outcome": "expected", "duration": 3808, "status": "pass"}, {"title": "TC_TL_016 - Reset clears date filter fields", "outcome": "expected", "duration": 2831, "status": "pass"}, {"title": "TC_TL_017 - Delete icon shows confirmation dialog", "outcome": "expected", "duration": 2556, "status": "pass"}, {"title": "TC_TL_018 - Pagination controls are visible and functional", "outcome": "expected", "duration": 2562, "status": "pass"}, {"title": "TC_TL_019 - Clicking Next loads page 2", "outcome": "expected", "duration": 2759, "status": "pass"}, {"title": "TC_TL_020 - Combined Final Category + Status filter returns correct rows", "outcome": "expected", "duration": 4751, "status": "pass"}, {"title": "TC_TL_021 - Date range filter with valid dates (within 90-day window) returns results", "outcome": "expected", "duration": 3385, "status": "pass"}, {"title": "TC_TL_022 - Calendar enforces 90-day limit on From Date", "outcome": "expected", "duration": 2458, "status": "pass"}, {"title": "TC_TL_023 - Reset clears search input and closes any autocomplete dropdown", "outcome": "expected", "duration": 3358, "status": "pass"}, {"title": "TC_TL_024 - Applying Status filter changes visible row count vs unfiltered", "outcome": "expected", "duration": 3589, "status": "pass"}, {"title": "TC_TL_025 - Pagination shows sequential page numbers starting from 1", "outcome": "expected", "duration": 2128, "status": "pass"}, {"title": "TC_TL_026 - Clicking page 2 loads different template data", "outcome": "expected", "duration": 2599, "status": "pass"}, {"title": "TC_TL_027 - Rapid filter change: last applied filter wins in final results", "outcome": "expected", "duration": 4185, "status": "pass"}, {"title": "TC_TL_028 - Non-matching search shows empty state or zero rows", "outcome": "expected", "duration": 2817, "status": "pass"}, {"title": "TC_TL_029 - Search with apostrophe in name does not crash", "outcome": "expected", "duration": 2919, "status": "pass"}, {"title": "TC_TL_030 - Filter state preserved in URL params", "outcome": "expected", "duration": 4453, "status": "pass"}, {"title": "TC_TL_031 - Browser back navigation returns to filtered results", "outcome": "expected", "duration": 3815, "status": "pass"}, {"title": "TC_TL_032 - Click View icon opens template details", "outcome": "expected", "duration": 3014, "status": "pass"}, {"title": "TC_TL_033 - Click Edit navigates to edit page (APPROVED rows only)", "outcome": "expected", "duration": 3031, "status": "pass"}, {"title": "TC_TL_034 - Edit button hidden on PENDING rows", "outcome": "expected", "duration": 3397, "status": "pass"}, {"title": "TC_TL_035 - Download with Utility filter applied shows toast", "outcome": "expected", "duration": 3478, "status": "pass"}, {"title": "TC_TL_036 - Download with Status=Approved filter applied shows toast", "outcome": "expected", "duration": 3499, "status": "pass"}, {"title": "TC_TL_037 - Second Download click within 15 min shows report-ready or generating toast", "outcome": "expected", "duration": 7675, "status": "pass"}, {"title": "TC_TL_038 - Delete N templates from page 1 (requires DELETE_TEMPLATE_COUNT in .env)", "outcome": "expected", "duration": 162629, "status": "pass"}]}, {"label": "Template List Sanity", "file": "sanity/template-list-sanity.spec.ts", "tests": [{"title": "TC021 - Template list page loads with correct columns", "outcome": "expected", "duration": 2219, "status": "pass"}, {"title": "TC022 - Template table shows data (at least 1 row)", "outcome": "expected", "duration": 2009, "status": "pass"}, {"title": "TC023 - APPROVED row has 3 action icons (view + edit + delete)", "outcome": "expected", "duration": 2206, "status": "pass"}, {"title": "TC024 - Partial name search returns filtered results", "outcome": "expected", "duration": 2950, "status": "pass"}, {"title": "TC025 - Non-existing name search returns empty list", "outcome": "expected", "duration": 2462, "status": "pass"}, {"title": "TC026 - Status dropdown has only Pending, Approved, Rejected (no Deleted)", "outcome": "expected", "duration": 2536, "status": "pass"}, {"title": "TC027 - Reset button clears all filters", "outcome": "expected", "duration": 3926, "status": "pass"}, {"title": "TC028 - Delete icon shows confirmation dialog before deleting", "outcome": "expected", "duration": 2549, "status": "pass"}, {"title": "TC029 - Previous button is disabled on page 1", "outcome": "expected", "duration": 2358, "status": "pass"}, {"title": "TC030 - Status dropdown contains All, Pending, Approved, Rejected — no Deleted", "outcome": "expected", "duration": 2544, "status": "pass"}, {"title": "TC031 - Final Category dropdown contains Marketing and Utility", "outcome": "expected", "duration": 3023, "status": "pass"}, {"title": "TC032 - Table columns are in correct order", "outcome": "expected", "duration": 2318, "status": "pass"}, {"title": "TC033 - Search button is enabled when template name is filled", "outcome": "expected", "duration": 2162, "status": "pass"}, {"title": "TC034 - Download button triggers email report toast", "outcome": "expected", "duration": 2586, "status": "pass"}, {"title": "TC035 - Create Template button navigates to create page", "outcome": "expected", "duration": 2813, "status": "pass"}]}]}, {"name": "Create Template", "icon": "➕", "desc": "Full create-template coverage: API auth, header/body/footer, CTA tracking, interactive actions, validation.", "suites": [{"label": "API Auth & Contracts", "file": "api/create-template-api.spec.ts", "tests": [{"title": "TC_CT_A_001 - Request without Authorization header is rejected", "outcome": "expected", "duration": 177, "status": "pass"}, {"title": "TC_CT_A_002 - Request with expired/invalid token is rejected", "outcome": "expected", "duration": 95, "status": "pass"}, {"title": "TC_CT_A_003 - Create template endpoint uses HTTPS", "outcome": "expected", "duration": 12, "status": "pass"}, {"title": "TC_CT_A_004 - Response Content-Type is application/json", "outcome": "expected", "duration": 4305, "status": "pass"}, {"title": "TC_CT_A_005 - Malformed JSON body returns error response", "outcome": "expected", "duration": 97, "status": "pass"}, {"title": "TC_CT_A_006 - Minimal valid payload (body only) returns SUCCESS with PENDING status", "outcome": "expected", "duration": 3642, "status": "pass"}, {"title": "TC_CT_A_007 - Template with TEXT header returns SUCCESS", "outcome": "expected", "duration": 2893, "status": "pass"}, {"title": "TC_CT_A_008 - Template with footer returns SUCCESS", "outcome": "expected", "duration": 3447, "status": "pass"}, {"title": "TC_CT_A_009 - UTILITY category template returns SUCCESS", "outcome": "expected", "duration": 2657, "status": "pass"}, {"title": "TC_CT_A_010 - Template with QUICK_REPLY button returns SUCCESS", "outcome": "expected", "duration": 5071, "status": "pass"}, {"title": "TC_CT_A_011 - Template with URL (STATIC) button returns SUCCESS", "outcome": "expected", "duration": 3135, "status": "pass"}, {"title": "TC_CT_A_012 - Template with URL (DYNAMIC) button returns SUCCESS", "outcome": "expected", "duration": 2915, "status": "pass"}, {"title": "TC_CT_A_013 - Template with PHONE_NUMBER button returns SUCCESS", "outcome": "expected", "duration": 2698, "status": "pass"}, {"title": "TC_CT_A_014 - Template with body variables and examples returns SUCCESS", "outcome": "expected", "duration": 3625, "status": "pass"}, {"title": "TC_CT_A_015 - Full template (header + body + footer + buttons) returns SUCCESS", "outcome": "expected", "duration": 3152, "status": "pass"}, {"title": "TC_CT_A_016 - Response echoes back the template name", "outcome": "expected", "duration": 2819, "status": "pass"}, {"title": "TC_CT_A_017 - Response echoes back the category", "outcome": "expected", "duration": 2098, "status": "pass"}, {"title": "TC_CT_A_018 - Response contains template_id (numeric)", "outcome": "expected", "duration": 2147, "status": "pass"}, {"title": "TC_CT_A_019 - Response contains waba_id matching request", "outcome": "expected", "duration": 2284, "status": "pass"}, {"title": "TC_CT_A_020 - New template status in response is a valid Meta status (PENDING/APPROVED/REJECTED)", "outcome": "expected", "duration": 2648, "status": "pass"}, {"title": "TC_CT_A_021 - Missing waba_id returns error", "outcome": "expected", "duration": 71, "status": "pass"}, {"title": "TC_CT_A_022 - Missing name returns error", "outcome": "expected", "duration": 62, "status": "pass"}, {"title": "TC_CT_A_023 - Missing category returns error", "outcome": "expected", "duration": 68, "status": "pass"}, {"title": "TC_CT_A_024 - Missing language returns error", "outcome": "expected", "duration": 61, "status": "pass"}, {"title": "TC_CT_A_025 - Missing body returns error", "outcome": "expected", "duration": 89, "status": "pass"}, {"title": "TC_CT_A_026 - Invalid category value returns error", "outcome": "expected", "duration": 65, "status": "pass"}, {"title": "TC_CT_A_027 - Template name with uppercase letters returns error", "outcome": "expected", "duration": 65, "status": "pass"}, {"title": "TC_CT_A_028 - Template name with spaces returns error", "outcome": "expected", "duration": 77, "status": "pass"}, {"title": "TC_CT_A_029 - Duplicate template name returns error", "outcome": "expected", "duration": 2464, "status": "pass"}, {"title": "TC_CT_A_030 - Body text exceeding 1024 chars returns error", "outcome": "expected", "duration": 1099, "status": "pass"}, {"title": "TC_CT_A_031 - Footer text exceeding 60 chars returns error", "outcome": "expected", "duration": 1016, "status": "pass"}, {"title": "TC_CT_A_032 - Footer with variable {{1}} returns error", "outcome": "expected", "duration": 1111, "status": "pass"}, {"title": "TC_CT_A_033 - Invalid WABA ID returns error", "outcome": "expected", "duration": 77, "status": "pass"}, {"title": "TC_CT_A_034 - Body variable without example value returns error", "outcome": "expected", "duration": 66, "status": "pass"}, {"title": "TC_CT_A_035 - Non-sequential variables ({{2}} without {{1}}) return error", "outcome": "expected", "duration": 72, "status": "pass"}, {"title": "TC_CT_A_036 - Body starting with variable {{1}} returns error", "outcome": "expected", "duration": 1956, "status": "pass"}, {"title": "TC_CT_A_037 - Body ending with variable {{1}} returns error", "outcome": "expected", "duration": 1494, "status": "pass"}, {"title": "TC_CT_A_038 - Sequential variables with correct examples return SUCCESS", "outcome": "expected", "duration": 3627, "status": "pass"}, {"title": "TC_CT_A_039 - CTA-URL with invalid URL format returns error", "outcome": "expected", "duration": 69, "status": "pass"}, {"title": "TC_CT_A_040 - Success response has codeId \"1200\"", "outcome": "expected", "duration": 2412, "status": "pass"}, {"title": "TC_CT_A_041 - Success response has status \"SUCCESS\"", "outcome": "expected", "duration": 3045, "status": "pass"}, {"title": "TC_CT_A_042 - Success response contains created_at timestamp", "outcome": "expected", "duration": 2292, "status": "pass"}, {"title": "TC_CT_A_043 - Success response contains meta_template_id", "outcome": "expected", "duration": 2085, "status": "pass"}, {"title": "TC_CT_A_044 - Success response contains request_id (UUID)", "outcome": "expected", "duration": 1864, "status": "pass"}, {"title": "TC_CT_A_045 - Error response does not expose stack traces", "outcome": "expected", "duration": 82, "status": "pass"}, {"title": "TC_CT_A_046 - Success response has no plain HTTP links", "outcome": "expected", "duration": 2313, "status": "pass"}, {"title": "TC_CT_A_047 - Rate limit: rapid calls are handled gracefully (no 500)", "outcome": "expected", "duration": 14397, "status": "pass"}]}, {"label": "Body & Footer", "file": "regression/template-management/create-template/body-and-footer.spec.ts", "tests": [{"title": "TC_CT_BF_001 - Body at exactly 1024 chars is accepted with counter showing limit", "outcome": "expected", "duration": 5387, "status": "pass"}, {"title": "TC_CT_BF_002 - Body exceeding 1024 chars is truncated or rejected", "outcome": "expected", "duration": 3793, "status": "pass"}, {"title": "TC_CT_BF_003 - Sequential body variables show example value fields", "outcome": "expected", "duration": 4351, "status": "pass"}, {"title": "TC_CT_BF_004 - Non-sequential variables in body show validation error", "outcome": "expected", "duration": 7449, "status": "pass"}, {"title": "TC_CT_BF_005 - Footer with variable {{1}} shows validation error", "outcome": "expected", "duration": 7487, "status": "pass"}, {"title": "TC_CT_BF_006 - Footer at exactly 60 chars is accepted; 61 chars is truncated or rejected", "outcome": "expected", "duration": 4148, "status": "pass"}, {"title": "TC_CT_BF_007 - Variable at start or end of body shows validation error", "outcome": "expected", "duration": 7583, "status": "pass"}]}, {"label": "Create & Submit", "file": "regression/template-management/create-template/create-submit.spec.ts", "tests": [{"title": "TC_CT_CS_001 - MARKETING template with TEXT header creates successfully", "outcome": "expected", "duration": 11145, "status": "pass"}, {"title": "TC_CT_CS_002 - UTILITY template creates successfully with PENDING status in list", "outcome": "expected", "duration": 12007, "status": "pass"}, {"title": "TC_CT_CS_003 - Template with IMAGE header creates successfully", "outcome": "expected", "duration": 14374, "status": "pass"}, {"title": "TC_CT_CS_004 - Template with Quick Reply buttons creates successfully", "outcome": "expected", "duration": 11678, "status": "pass"}, {"title": "TC_CT_CS_005 - Template with CTA-URL STATIC creates successfully", "outcome": "expected", "duration": 11710, "status": "pass"}, {"title": "TC_CT_CS_006 - Template with CTA-URL DYNAMIC creates successfully", "outcome": "expected", "duration": 12655, "status": "pass"}, {"title": "TC_CT_CS_007 - Template with CTA-Phone creates successfully", "outcome": "expected", "duration": 11963, "status": "pass"}, {"title": "TC_CT_CS_008 - Template with body variables requires example values before submit", "outcome": "expected", "duration": 10498, "status": "pass"}, {"title": "TC_CT_CS_009 - Template with VIDEO header creates successfully", "outcome": "expected", "duration": 8003, "status": "pass"}, {"title": "TC_CT_CS_010 - Template with DOCUMENT header creates successfully", "outcome": "expected", "duration": 14711, "status": "pass"}, {"title": "TC_CT_CS_011 - Template with footer text creates successfully", "outcome": "expected", "duration": 9524, "status": "pass"}, {"title": "TC_CT_CS_012 - Created template appears in template list", "outcome": "expected", "duration": 12388, "status": "pass"}, {"title": "TC_CT_CS_013 - Preview panel updates header text in real-time", "outcome": "expected", "duration": 5211, "status": "pass"}, {"title": "TC_CT_CS_014 - Preview panel updates body text in real-time", "outcome": "expected", "duration": 4021, "status": "pass"}, {"title": "TC_CT_CS_015 - Preview panel shows Quick Reply buttons as user adds them", "outcome": "expected", "duration": 5138, "status": "pass"}, {"title": "TC_CT_CS_016 - Create Template button on list page navigates to /templates/create", "outcome": "expected", "duration": 2409, "status": "pass"}, {"title": "TC_CT_CS_017 - Re-opening create form after cancel shows blank form", "outcome": "expected", "duration": 6922, "status": "pass"}, {"title": "TC_CT_CS_018 - WABA ID dropdown shows at least 1 authorized option", "outcome": "expected", "duration": 4072, "status": "pass"}, {"title": "TC_CT_CS_019 - Template with CTA-URL STATIC tracking ON creates successfully", "outcome": "expected", "duration": 13843, "status": "pass"}, {"title": "TC_CT_CS_020 - Template with CTA-URL DYNAMIC tracking ON creates successfully", "outcome": "expected", "duration": 13364, "status": "pass"}, {"title": "TC_CT_CS_021 - Template with two DYNAMIC CTA-URL buttons creates successfully", "outcome": "expected", "duration": 14960, "status": "pass"}, {"title": "TC_CT_CS_022 - Template with CTA-URL DYNAMIC + CTA-Phone creates successfully", "outcome": "expected", "duration": 13542, "status": "pass"}, {"title": "TC_CT_CS_023 - Template with no header and no vars creates successfully", "outcome": "expected", "duration": 10176, "status": "pass"}, {"title": "TC_CT_CS_024 - Template with no header and body variables + examples creates successfully", "outcome": "expected", "duration": 13312, "status": "pass"}, {"title": "TC_CT_CS_025 - Template with TEXT header (no variable) and no body vars creates successfully", "outcome": "expected", "duration": 10820, "status": "pass"}, {"title": "TC_CT_CS_026 - Template with TEXT header containing {{1}} + example creates successfully", "outcome": "expected", "duration": 12199, "status": "pass"}, {"title": "TC_CT_CS_027 - Template with TEXT header and body variables + examples creates successfully", "outcome": "expected", "duration": 12782, "status": "pass"}, {"title": "TC_CT_CS_028 - Template with IMAGE header and no body vars creates successfully", "outcome": "expected", "duration": 12031, "status": "pass"}, {"title": "TC_CT_CS_029 - Template with IMAGE header and body variables + examples creates successfully", "outcome": "expected", "duration": 12787, "status": "pass"}, {"title": "TC_CT_CS_030 - Template with VIDEO header creates successfully", "outcome": "expected", "duration": 16937, "status": "pass"}, {"title": "TC_CT_CS_031 - Template with DOCUMENT header creates successfully (extended)", "outcome": "expected", "duration": 11289, "status": "pass"}, {"title": "TC_CT_CS_032 - Template with footer at exactly 60 chars creates successfully", "outcome": "expected", "duration": 9017, "status": "pass"}, {"title": "TC_CT_CS_033 - Template with Quick Reply buttons (data-driven count) creates successfully", "outcome": "expected", "duration": 12144, "status": "pass"}, {"title": "TC_CT_CS_034 - Template with maximum 10 Quick Reply buttons creates successfully", "outcome": "expected", "duration": 14797, "status": "pass"}, {"title": "TC_CT_CS_035 - Combined: TEXT header + body vars + footer + CTA-URL STATIC creates successfully", "outcome": "expected", "duration": 15068, "status": "pass"}, {"title": "TC_CT_CS_036 - Combined: IMAGE header + footer + Quick Reply creates successfully", "outcome": "expected", "duration": 15059, "status": "pass"}, {"title": "TC_CT_CS_037 - Combined: TEXT hdr+var + body vars + footer + CTA-URL DYNAMIC tracking OFF creates successfully", "outcome": "expected", "duration": 15544, "status": "pass"}, {"title": "TC_CT_CS_038 - Combined: DOCUMENT header + body vars + CTA-Phone creates successfully", "outcome": "expected", "duration": 16452, "status": "pass"}, {"title": "TC_CT_CS_039 - Template with two CTA-URL STATIC buttons creates successfully", "outcome": "expected", "duration": 12613, "status": "pass"}, {"title": "TC_CT_CS_040 - Template with CTA-URL STATIC + CTA-Phone creates successfully", "outcome": "expected", "duration": 13510, "status": "pass"}, {"title": "TC_CT_CS_041 - Two CTA-URL DYNAMIC tracking ON + CTA-Phone + footer creates successfully", "outcome": "expected", "duration": 16426, "status": "pass"}, {"title": "TC_CT_CS_042 - Two CTA-URL DYNAMIC both tracking OFF creates successfully", "outcome": "expected", "duration": 16218, "status": "pass"}]}, {"label": "CTA URL Tracking", "file": "regression/template-management/create-template/cta-url-tracking.spec.ts", "tests": [{"title": "TC_CT_CTA_001 - CTA-URL STATIC: Add Variable button is NOT visible by default", "outcome": "expected", "duration": 6360, "status": "pass"}, {"title": "TC_CT_CTA_002 - CTA-URL STATIC: Add Variable button NOT visible with tracking ON", "outcome": "expected", "duration": 6894, "status": "pass"}, {"title": "TC_CT_CTA_003 - CTA-URL DYNAMIC tracking ON: Add Variable button is NOT visible", "outcome": "expected", "duration": 6495, "status": "pass"}, {"title": "TC_CT_CTA_004 - CTA-URL DYNAMIC tracking OFF: Add Variable button IS visible", "outcome": "expected", "duration": 6193, "status": "pass"}, {"title": "TC_CT_CTA_005 - CTA-URL DYNAMIC tracking OFF: clicking Add Variable appends {{1}} to URL", "outcome": "expected", "duration": 6572, "status": "pass"}, {"title": "TC_CT_CTA_006 - CTA-URL DYNAMIC: toggling tracking OFF reveals Add Variable button", "outcome": "expected", "duration": 7214, "status": "pass"}, {"title": "TC_CT_CTA_007 - CTA-URL DYNAMIC: toggling tracking ON after Add Variable hides the button", "outcome": "expected", "duration": 7128, "status": "pass"}, {"title": "TC_CT_CTA_008 - Switching CTA type STATIC→DYNAMIC clears the URL field", "outcome": "skipped", "duration": 1014, "status": "skip"}, {"title": "TC_CT_CTA_009 - CTA-URL DYNAMIC: Add Variable becomes disabled or hidden after first click", "outcome": "expected", "duration": 6641, "status": "pass"}, {"title": "TC_CT_CTA_010 - Switching CTA type DYNAMIC→STATIC clears the URL field", "outcome": "skipped", "duration": 1036, "status": "skip"}]}, {"label": "Form Validation", "file": "regression/template-management/create-template/form-validation.spec.ts", "tests": [{"title": "TC_CT_FV_001 - Submit completely empty form shows all required field errors", "outcome": "expected", "duration": 4869, "status": "pass"}, {"title": "TC_CT_FV_002 - Missing WABA ID shows specific field error", "outcome": "expected", "duration": 6506, "status": "pass"}, {"title": "TC_CT_FV_003 - Missing Category shows specific field error", "outcome": "expected", "duration": 6188, "status": "pass"}, {"title": "TC_CT_FV_004 - Missing Language shows specific field error", "outcome": "expected", "duration": 6106, "status": "pass"}, {"title": "TC_CT_FV_005 - Missing Body shows specific field error", "outcome": "expected", "duration": 7494, "status": "pass"}, {"title": "TC_CT_FV_006 - Missing Template Name shows specific field error", "outcome": "expected", "duration": 6866, "status": "pass"}, {"title": "TC_CT_FV_007 - Template name field silently lowercases uppercase and strips spaces", "outcome": "expected", "duration": 3780, "status": "pass"}]}, {"label": "Header Types", "file": "regression/template-management/create-template/header-types.spec.ts", "tests": [{"title": "TC_CT_HT_001 - Header type None shows no additional header inputs", "outcome": "expected", "duration": 4716, "status": "pass"}, {"title": "TC_CT_HT_002 - Header type TEXT shows text input field", "outcome": "expected", "duration": 5310, "status": "pass"}, {"title": "TC_CT_HT_003 - Header type IMAGE accepts a valid image file (< 5 MB)", "outcome": "expected", "duration": 5787, "status": "pass"}, {"title": "TC_CT_HT_004 - Header type IMAGE rejects oversized file (> 5 MB) with error", "outcome": "expected", "duration": 6115, "status": "pass"}, {"title": "TC_CT_HT_005 - Header type VIDEO shows file upload input", "outcome": "expected", "duration": 5092, "status": "pass"}, {"title": "TC_CT_HT_006 - Header type DOCUMENT accepts a valid PDF file", "outcome": "expected", "duration": 6411, "status": "pass"}, {"title": "TC_CT_HT_007 - Header TEXT: clicking Add Variable updates input and shows Variable Mapping", "outcome": "expected", "duration": 5950, "status": "pass"}, {"title": "TC_CT_HT_008 - Header TEXT: Add Variable button is disabled after one variable is added", "outcome": "expected", "duration": 5466, "status": "pass"}, {"title": "TC_CT_HT_009 - Header TEXT: variable at start of input shows inline error", "outcome": "expected", "duration": 5365, "status": "pass"}, {"title": "TC_CT_HT_010 - Header TEXT: character counter shows 60/60 at limit", "outcome": "expected", "duration": 4935, "status": "pass"}, {"title": "TC_CT_HT_011 - Header TEXT: submitting without variable mapping value shows validation error", "outcome": "expected", "duration": 9040, "status": "pass"}, {"title": "TC_CT_HT_012 - Header IMAGE: PDF upload rejected with invalid format error", "outcome": "expected", "duration": 5505, "status": "pass"}, {"title": "TC_CT_HT_013 - Header VIDEO: JPG upload rejected with invalid format error", "outcome": "expected", "duration": 6435, "status": "pass"}, {"title": "TC_CT_HT_014 - Header DOCUMENT: JPG upload rejected with invalid format error", "outcome": "expected", "duration": 6262, "status": "pass"}, {"title": "TC_CT_HT_015 - Header IMAGE: oversized file (> 5 MB) shows exact size limit error", "outcome": "expected", "duration": 5565, "status": "pass"}, {"title": "TC_CT_HT_016 - Header VIDEO: oversized file (> 16 MB) shows exact size limit error", "outcome": "expected", "duration": 5779, "status": "pass"}, {"title": "TC_CT_HT_017 - Header DOCUMENT: oversized file (> 100 MB) shows exact size limit error", "outcome": "expected", "duration": 5568, "status": "pass"}, {"title": "TC_CT_HT_018 - Switching header type clears previous header state", "outcome": "expected", "duration": 7622, "status": "pass"}, {"title": "TC_CT_HT_019 - Media Type dropdown shows Static as default for IMAGE header", "outcome": "expected", "duration": 5559, "status": "pass"}, {"title": "TC_CT_HT_020 - Media Type dropdown shows Static as default for VIDEO header", "outcome": "expected", "duration": 6068, "status": "pass"}, {"title": "TC_CT_HT_021 - Media Type dropdown shows Static as default for DOCUMENT header", "outcome": "expected", "duration": 5293, "status": "pass"}, {"title": "TC_CT_HT_022 - Header type VIDEO accepts a valid MP4 file (< 16 MB)", "outcome": "expected", "duration": 6309, "status": "pass"}]}, {"label": "Interactive Actions", "file": "regression/template-management/create-template/interactive-actions.spec.ts", "tests": [{"title": "TC_CT_IA_001 - Interactive type None shows no button input sections", "outcome": "expected", "duration": 5214, "status": "pass"}, {"title": "TC_CT_IA_002 - Interactive type Quick Reply shows button label inputs", "outcome": "expected", "duration": 5160, "status": "pass"}, {"title": "TC_CT_IA_003 - Interactive type CTA-URL STATIC shows URL input without variable field", "outcome": "expected", "duration": 6916, "status": "pass"}, {"title": "TC_CT_IA_004 - Interactive type CTA-URL DYNAMIC shows variable suffix field", "outcome": "expected", "duration": 7957, "status": "pass"}, {"title": "TC_CT_IA_005 - CTA-URL with invalid URL format shows validation error", "outcome": "expected", "duration": 8873, "status": "pass"}, {"title": "TC_CT_IA_006 - Interactive type CTA-Phone shows phone number field", "outcome": "expected", "duration": 4700, "status": "pass"}, {"title": "TC_CT_IA_007 - Max Quick Reply buttons — can add up to 10, all inputs visible", "outcome": "expected", "duration": 10242, "status": "pass"}, {"title": "TC_CT_IA_008 - Add Button disappears after 10th Quick Reply button is added", "outcome": "expected", "duration": 9822, "status": "pass"}, {"title": "TC_CT_IA_009 - Submitting with empty Quick Reply button label shows validation error", "outcome": "expected", "duration": 9754, "status": "pass"}, {"title": "TC_CT_IA_010 - Quick Reply button label over 25 characters is rejected or truncated", "outcome": "expected", "duration": 9977, "status": "pass"}, {"title": "TC_CT_IA_011 - Deleting a Quick Reply button reduces count from 2 to 1", "outcome": "expected", "duration": 6098, "status": "pass"}, {"title": "TC_CT_IA_012 - CTA-Phone without country code shows validation error", "outcome": "expected", "duration": 11368, "status": "pass"}, {"title": "TC_CT_IA_013 - CTA-Phone field hard-caps input at 25 digits", "outcome": "expected", "duration": 7537, "status": "pass"}, {"title": "TC_CT_IA_014 - CTA-URL with empty Button Text shows validation error", "outcome": "expected", "duration": 10023, "status": "pass"}, {"title": "TC_CT_IA_015 - Selecting Quick Reply disables CTA-URL option in dropdown", "outcome": "expected", "duration": 5542, "status": "pass"}, {"title": "TC_CT_IA_016 - CTA-URL max 2 buttons — Add CTA-URL disappears after 2nd button added", "outcome": "expected", "duration": 5739, "status": "pass"}, {"title": "TC_CT_IA_017 - Selecting CTA-URL disables Quick Reply option in dropdown", "outcome": "expected", "duration": 5362, "status": "pass"}, {"title": "TC_CT_IA_018 - CTA-URL and CTA-Phone can be used together — submission succeeds", "outcome": "expected", "duration": 15419, "status": "pass"}]}, {"label": "Template Name", "file": "regression/template-management/create-template/template-name.spec.ts", "tests": [{"title": "TC_CT_TN_001 - Filling name without WABA/Language context does not trigger availability API call", "outcome": "expected", "duration": 6494, "status": "pass"}, {"title": "TC_CT_TN_002 - Available name shows no duplicate error after availability check", "outcome": "expected", "duration": 7513, "status": "pass"}, {"title": "TC_CT_TN_003 - Duplicate template name shows inline already-exists error", "outcome": "expected", "duration": 8206, "status": "pass"}, {"title": "TC_CT_TN_004 - Template name at exactly 512 characters is accepted", "outcome": "expected", "duration": 3721, "status": "pass"}, {"title": "TC_CT_TN_005 - Template name exceeding 512 characters is truncated or rejected", "outcome": "expected", "duration": 4041, "status": "pass"}, {"title": "TC_CT_TN_006 - Template name with hyphens or dots is rejected by validation", "outcome": "expected", "duration": 8125, "status": "pass"}, {"title": "TC_CT_TN_007 - Uppercase input is silently converted to lowercase by the field", "outcome": "expected", "duration": 3896, "status": "pass"}]}, {"label": "Create Template Sanity", "file": "sanity/create-template-sanity.spec.ts", "tests": [{"title": "TC_CT_S_001 - Create template page loads with all required form sections", "outcome": "expected", "duration": 3682, "status": "pass"}, {"title": "TC_CT_S_002 - WABA ID dropdown returns at least 1 option", "outcome": "expected", "duration": 3824, "status": "pass"}, {"title": "TC_CT_S_003 - Category dropdown returns at least 1 option", "outcome": "expected", "duration": 3891, "status": "pass"}, {"title": "TC_CT_S_004 - Language dropdown returns at least 1 option", "outcome": "expected", "duration": 3983, "status": "pass"}, {"title": "TC_CT_S_005 - Submitting empty form shows required-field validation errors", "outcome": "expected", "duration": 4433, "status": "pass"}, {"title": "TC_CT_S_006 - Template name with fewer than 3 chars does not show availability message", "outcome": "expected", "duration": 4668, "status": "pass"}, {"title": "TC_CT_S_007 - Minimal valid template submits successfully", "outcome": "expected", "duration": 10744, "status": "pass"}, {"title": "TC_CT_S_008 - Cancel button navigates back to template list without creating", "outcome": "expected", "duration": 4349, "status": "pass"}, {"title": "TC_CT_S_009 - Header type dropdown returns at least 1 option", "outcome": "expected", "duration": 4071, "status": "pass"}, {"title": "TC_CT_S_010 - Interactive Actions dropdown returns at least 1 option", "outcome": "expected", "duration": 4057, "status": "pass"}, {"title": "TC_CT_S_011 - Selecting Quick Reply shows at least 1 button input field", "outcome": "expected", "duration": 4944, "status": "pass"}, {"title": "TC_CT_S_012 - Selecting CTA-URL shows URL input field", "outcome": "expected", "duration": 4967, "status": "pass"}, {"title": "TC_CT_S_013 - Selecting CTA-Phone shows phone number input field", "outcome": "expected", "duration": 4951, "status": "pass"}, {"title": "TC_CT_S_014 - Template Preview panel is visible on page load", "outcome": "expected", "duration": 3730, "status": "pass"}, {"title": "TC_CT_S_016 - Template with IMAGE header submits successfully", "outcome": "expected", "duration": 16066, "status": "pass"}, {"title": "TC_CT_S_017 - Template with VIDEO header submits successfully", "outcome": "expected", "duration": 16787, "status": "pass"}, {"title": "TC_CT_S_018 - Template with DOCUMENT header submits successfully", "outcome": "expected", "duration": 15888, "status": "pass"}, {"title": "TC_CT_S_019 - Template with CTA-URL DYNAMIC tracking ON submits successfully", "outcome": "expected", "duration": 14092, "status": "pass"}, {"title": "TC_CT_S_020 - Template with TEXT header+variable and body variables submits successfully", "outcome": "expected", "duration": 12738, "status": "pass"}]}]}]};
+
+let gFilter = 'all';   // global status filter
+let gSearch = '';      // global search
+// per-suite local filter: sFilter[modIdx][suiteIdx] = 'all'|'pass'|'skip'|'fail'
+const sFilter = {};
+
+// ─── BUILD ────────────────────────────────────────────────────────
+function makeRow(t) {
+  const m = t.title.match(/^(TC[\w\-._]+)\s*[-\u2013]\s*(.+)$/);
+  const id   = m ? `<span class="tc-id">${m[1]}</span>` : '';
+  const name = m ? m[2] : t.title;
+  const dur  = t.status==='skip' ? '\u2014' : `${t.duration.toLocaleString()}ms`;
+  const bl   = t.status==='pass'?'&#10003; Pass':t.status==='skip'?'&#9675; Skip':'&#10007; Fail';
+  return `<div class="trow" data-s="${t.status}" data-q="${t.title.toLowerCase()}">
+    <div class="tdot ${t.status[0]}"></div>
+    <div class="tname">${id}${name}</div>
+    <div class="t-badge ${t.status[0]}">${bl}</div>
+    <div class="tdur">${dur}</div>
+  </div>`;
+}
+
+function makeSfBar(mi, sid, tests) {
+  const sp = tests.filter(t=>t.status==='pass').length;
+  const ss = tests.filter(t=>t.status==='skip').length;
+  const sf = tests.filter(t=>t.status==='fail').length;
+  return `<div class="sf-bar" id="sfbar-${mi}-${sid}">
+    <button class="sf-btn on-all" onclick="setSuiteFilter(${mi},'${sid}','all',this)">All ${tests.length}</button>
+    <button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','pass',this)">&#10003; Pass ${sp}</button>
+    ${ss>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','skip',this)">&#9675; Skip ${ss}</button>`:''}
+    ${sf>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','fail',this)">&#10007; Fail ${sf}</button>`:''}
+    <span class="sf-count" id="sc-${mi}-${sid}">${tests.length} tests</span>
+  </div>`;
+}
+
+function build() {
+  const col = document.getElementById('mod-col');
+  col.innerHTML = '';
+
+  R.modules.forEach((mod, mi) => {
+    sFilter[mi] = {};
+
+    const allTests = mod.suites.flatMap(s => s.tests);
+    const modPass  = allTests.filter(t=>t.status==='pass').length;
+    const modSkip  = allTests.filter(t=>t.status==='skip').length;
+    const modTotal = allTests.length;
+
+    // Init sFilter for 'all' tab + each suite
+    sFilter[mi]['all'] = 'all';
+    mod.suites.forEach((s, si) => sFilter[mi][si] = 'all');
+
+    // ── ALL TAB (first) + suite tabs ──
+    const allBadge = `<span class="tbg tbg-p">&#10003;${modPass}</span>${modSkip>0?` <span class="tbg tbg-s">&#9675;${modSkip}</span>`:''}`;
+    let tabsHtml = `<div class="stab active" id="tab-${mi}-all" onclick="switchTab(${mi},'all')">All ${allBadge}</div>`;
+    tabsHtml += mod.suites.map((s, si) => {
+      const sp = s.tests.filter(t=>t.status==='pass').length;
+      const ss = s.tests.filter(t=>t.status==='skip').length;
+      let badges = `<span class="tbg tbg-p">&#10003;${sp}</span>`;
+      if (ss > 0) badges += ` <span class="tbg tbg-s">&#9675;${ss}</span>`;
+      return `<div class="stab" id="tab-${mi}-${si}" onclick="switchTab(${mi},${si})">${s.label} ${badges}</div>`;
+    }).join('');
+
+    // ── ALL PANEL (first, active) ──
+    let panelsHtml = `<div class="suite-panel active" id="sp-${mi}-all">
+      ${makeSfBar(mi,'all',allTests)}
+      <div class="test-list" id="tl-${mi}-all">${allTests.map(makeRow).join('')}</div>
+      <div class="no-match" id="nm-${mi}-all">No tests match the current filter.</div>
+    </div>`;
+
+    // ── INDIVIDUAL SUITE PANELS ──
+    panelsHtml += mod.suites.map((s, si) => {
+      return `<div class="suite-panel" id="sp-${mi}-${si}">
+        ${makeSfBar(mi,si,s.tests)}
+        <div class="test-list" id="tl-${mi}-${si}">${s.tests.map(makeRow).join('')}</div>
+        <div class="no-match" id="nm-${mi}-${si}">No tests match the current filter.</div>
+      </div>`;
+    }).join('');
+
+    // ── CARD ──
+    const card = document.createElement('div');
+    card.className = 'mod-card';
+    card.id = `mc-${mi}`;
+    card.innerHTML = `
+      <div class="mod-hdr" onclick="toggleMod(${mi})">
+        <div class="mod-hdr-left">
+          <span class="mod-icon">${mod.icon}</span>
+          <div>
+            <div class="mod-title">${mod.name}</div>
+            <div class="mod-desc">${mod.desc}</div>
+          </div>
+        </div>
+        <div class="mod-kpis">
+          <div class="mk mk-t"><div class="mk-num">${modTotal}</div><div class="mk-lbl">Total</div></div>
+          <div class="mk mk-p"><div class="mk-num">${modPass}</div><div class="mk-lbl">Pass</div></div>
+          <div class="mk mk-s"><div class="mk-num">${modSkip}</div><div class="mk-lbl">Skip</div></div>
+        </div>
+        <span class="mod-chevron open" id="chev-${mi}">&#9654;</span>
+      </div>
+      <div class="mod-body" id="mb-${mi}">
+        <div class="suite-tabs" id="stabs-${mi}">${tabsHtml}</div>
+        <div id="spnls-${mi}">${panelsHtml}</div>
+      </div>`;
+    col.appendChild(card);
+  });
+}
+
+// ─── TOGGLE MODULE COLLAPSE ───────────────────────────────────────
+function toggleMod(mi) {
+  const body  = document.getElementById(`mb-${mi}`);
+  const chev  = document.getElementById(`chev-${mi}`);
+  const open  = !body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', open);
+  chev.classList.toggle('open', !open);
+}
+
+let allCollapsed = false;
+function toggleAll() {
+  allCollapsed = !allCollapsed;
+  R.modules.forEach((_, mi) => {
+    const body = document.getElementById(`mb-${mi}`);
+    const chev = document.getElementById(`chev-${mi}`);
+    body.classList.toggle('collapsed', allCollapsed);
+    chev.classList.toggle('open', !allCollapsed);
+  });
+  document.querySelector('.btn-sm').textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
+
+// ─── SWITCH SUITE TAB ─────────────────────────────────────────────
+function switchTab(mi, si) {
+  document.querySelectorAll(`#stabs-${mi} .stab`).forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll(`#spnls-${mi} .suite-panel`).forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${mi}-${si}`).classList.add('active');
+  document.getElementById(`sp-${mi}-${si}`).classList.add('active');
+  applyToSuite(mi, si);
+}
+
+// ─── SUITE-LEVEL FILTER ───────────────────────────────────────────
+function setSuiteFilter(mi, si, status, btn) {
+  sFilter[mi][si] = status;
+  const bar = document.getElementById(`sfbar-${mi}-${si}`);
+  bar.querySelectorAll('.sf-btn').forEach(b => {
+    b.className = 'sf-btn';
+  });
+  btn.className = `sf-btn on-${status}`;
+  applyToSuite(mi, si);
+}
+
+// ─── APPLY FILTERS TO ONE SUITE ──────────────────────────────────
+function applyToSuite(mi, si) {
+  const sf = sFilter[mi][si] || 'all';
+  const rows = document.querySelectorAll(`#tl-${mi}-${si} .trow`);
+  let vis = 0;
+  rows.forEach(row => {
+    const rs  = row.dataset.s;
+    const rq  = row.dataset.q;
+    const sfOk = sf === 'all' || rs === sf;
+    const gfOk = gFilter === 'all' || rs === gFilter;
+    const sqOk = !gSearch || rq.includes(gSearch);
+    const show = sfOk && gfOk && sqOk;
+    row.classList.toggle('row-hidden', !show);
+    if (show) vis++;
+  });
+  const sc = document.getElementById(`sc-${mi}-${si}`);
+  if (sc) sc.textContent = `${vis} test${vis!==1?'s':''}`;
+  const nm = document.getElementById(`nm-${mi}-${si}`);
+  if (nm) nm.style.display = vis === 0 ? 'block' : 'none';
+}
+
+// ─── APPLY FILTERS TO ALL SUITES ─────────────────────────────────
+function applyAll() {
+  R.modules.forEach((mod, mi) => {
+    let modHasVisible = false;
+    // Apply to 'all' panel and each suite panel
+    const sids = ['all', ...mod.suites.map((_,si) => si)];
+    sids.forEach(sid => {
+      applyToSuite(mi, sid);
+      const rows = document.querySelectorAll(`#tl-${mi}-${sid} .trow:not(.row-hidden)`);
+      if (rows.length > 0) modHasVisible = true;
+    });
+    const card = document.getElementById(`mc-${mi}`);
+    if (gFilter === 'all' && !gSearch) {
+      card.classList.remove('card-hidden');
+    } else {
+      card.classList.toggle('card-hidden', !modHasVisible);
+    }
+  });
+}
+
+// ─── GLOBAL FILTER ───────────────────────────────────────────────
+function globalFilter(status, btn) {
+  gFilter = status;
+  document.querySelectorAll('.fpill').forEach(p => {
+    p.className = 'fpill';
+  });
+  btn.className = `fpill on-${status}`;
+  // If clicking a status filter, open all collapsed modules so user can see results
+  if (status !== 'all') {
+    R.modules.forEach((_, mi) => {
+      const body = document.getElementById(`mb-${mi}`);
+      const chev = document.getElementById(`chev-${mi}`);
+      body.classList.remove('collapsed');
+      chev.classList.add('open');
+    });
+    allCollapsed = false;
+    document.querySelector('.btn-sm').textContent = 'Collapse All';
+  }
+  applyAll();
+}
+
+// ─── SEARCH ──────────────────────────────────────────────────────
+function onSearch(val) {
+  gSearch = val.trim().toLowerCase();
+  if (gSearch) {
+    // expand all modules when searching
+    R.modules.forEach((_, mi) => {
+      document.getElementById(`mb-${mi}`).classList.remove('collapsed');
+      document.getElementById(`chev-${mi}`).classList.add('open');
+    });
+    allCollapsed = false;
+  }
+  applyAll();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+build();
+
+// Set sidebar top = toolbar actual height so it sticks right below toolbar
+function fixSidebarTop() {
+  const toolbar = document.querySelector('.toolbar');
+  const sidebar = document.querySelector('.sidebar');
+  if (toolbar && sidebar) {
+    const h = toolbar.getBoundingClientRect().height;
+    sidebar.style.top = (h + 8) + 'px';
+    sidebar.style.maxHeight = 'calc(100vh - ' + (h + 16) + 'px)';
+  }
+}
+fixSidebarTop();
+window.addEventListener('resize', fixSidebarTop);
+</script>
+</body>
+</html>
