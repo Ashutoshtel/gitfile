@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prod Sanity Report — PeConnect CPaaS · PROD · Sprint 9</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0d1117; --ink-2:#24292f; --ink-3:#57606a;
+  --surface:#f6f8fa; --surface-2:#ffffff;
+  --border:#d0d7de; --border-light:#eaeef2;
+  --pass:#1a7f37; --pass-bg:#dafbe1; --pass-accent:#2da44e;
+  --skip:#7d4e00; --skip-bg:#fff8c5; --skip-accent:#bf8700;
+  --fail:#cf222e; --fail-bg:#ffebe9; --fail-accent:#cf222e;
+  --accent:#0969da; --accent-bg:#ddf4ff;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(27,31,36,.12),0 8px 24px rgba(66,74,83,.06);
+  --shadow-sm:0 1px 2px rgba(27,31,36,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--ink);line-height:1.5;font-size:14px;}
+.hero{background:var(--ink);padding:48px 0 0;width:100%;overflow:hidden;}
+.hero-inner{max-width:1200px;margin:0 auto;padding:0 40px;position:relative;}
+.hero-inner::before{content:'';position:fixed;top:0;left:0;right:0;height:260px;background:repeating-linear-gradient(-45deg,transparent,transparent 24px,rgba(255,255,255,.018) 24px,rgba(255,255,255,.018) 25px);pointer-events:none;z-index:0;}
+.hero-meta{display:flex;gap:0;flex-wrap:wrap;padding:0;border-top:1px solid rgba(255,255,255,.08);position:relative;z-index:1;}
+.meta-item{padding:14px 28px 14px 0;}
+.meta-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;margin-bottom:3px;}
+.meta-value{font-size:13.5px;color:rgba(255,255,255,.9);font-weight:500;white-space:nowrap;}
+.meta-value.all-pass{color:#3fb950;font-weight:700;}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:4px 14px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.65);font-family:'DM Mono',monospace;margin-bottom:16px;position:relative;z-index:1;}
+.hero-tag::before{content:'●';color:#3fb950;font-size:8px;}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(28px,3.8vw,50px);line-height:1.12;color:#fff;margin-bottom:10px;position:relative;z-index:1;}
+.hero-title em{font-style:italic;color:rgba(255,255,255,.42);}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.46);margin-bottom:28px;font-weight:300;max-width:580px;position:relative;z-index:1;}
+.kpi-strip{background:#fff;border-bottom:1px solid var(--border);}
+.kpi-grid{max-width:1200px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:repeat(5,1fr);}
+.kpi-cell{padding:24px 20px;text-align:center;position:relative;}
+.kpi-cell+.kpi-cell::before{content:'';position:absolute;left:0;top:14%;height:72%;width:1px;background:var(--border-light);}
+.kpi-num{font-family:'DM Serif Display',serif;font-size:40px;line-height:1;margin-bottom:4px;}
+.kpi-num.t{color:var(--ink)}.kpi-num.p{color:var(--pass)}.kpi-num.s{color:var(--skip)}.kpi-num.f{color:var(--fail)}.kpi-num.r{color:var(--accent)}
+.kpi-lbl{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;}
+.kpi-line{height:3px;width:44px;border-radius:2px;margin:8px auto 0;}
+.kpi-line.t{background:var(--ink-2)}.kpi-line.p{background:var(--pass-accent)}.kpi-line.s{background:var(--skip-accent)}.kpi-line.f{background:var(--fail-accent)}.kpi-line.r{background:var(--accent)}
+.toolbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:0;z-index:200;box-shadow:var(--shadow-sm);}
+.toolbar-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.toolbar-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-family:'DM Mono',monospace;flex-shrink:0;}
+.filter-group{display:flex;gap:5px;flex-wrap:wrap;}
+.fpill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--ink-3);font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.fpill:hover{border-color:var(--ink-3);}
+.fpill.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.fpill.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.fpill.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.fpill.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.fdot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.fdot.p{background:var(--pass-accent)}.fdot.s{background:var(--skip-accent)}.fdot.f{background:var(--fail-accent)}
+.search-box{position:relative;flex:1;min-width:180px;max-width:300px;}
+.search-box svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none;}
+#q{width:100%;padding:6px 10px 6px 30px;border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;transition:border-color .15s;}
+#q:focus{border-color:var(--accent);}
+.btn-sm{padding:5px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:11.5px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--ink-3);transition:all .15s;font-weight:500;white-space:nowrap;}
+.btn-sm:hover{background:var(--surface);border-color:var(--ink-3);}
+.layout{max-width:1200px;margin:0 auto;padding:28px 40px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;}
+.mod-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.mod-card.card-hidden{display:none;}
+.mod-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 22px;background:var(--surface);border-bottom:1px solid var(--border-light);cursor:pointer;user-select:none;}
+.mod-hdr:hover{background:#edf0f3;}
+.mod-hdr-left{display:flex;align-items:flex-start;gap:11px;flex:1;}
+.mod-icon{font-size:20px;line-height:1;padding-top:2px;flex-shrink:0;}
+.mod-title{font-weight:700;font-size:14.5px;color:var(--ink);margin-bottom:2px;}
+.mod-desc{font-size:11.5px;color:var(--ink-3);line-height:1.5;max-width:480px;}
+.mod-kpis{display:flex;border:1px solid var(--border-light);border-radius:8px;overflow:hidden;flex-shrink:0;margin-top:2px;}
+.mk{padding:7px 13px;text-align:center;border-right:1px solid var(--border-light);}
+.mk:last-child{border-right:none;}
+.mk-t{background:var(--surface);} .mk-p{background:var(--pass-bg);} .mk-s{background:var(--skip-bg);}
+.mk-num{font-family:'DM Serif Display',serif;font-size:19px;line-height:1;}
+.mk-t .mk-num{color:var(--ink);} .mk-p .mk-num{color:var(--pass);} .mk-s .mk-num{color:var(--skip);}
+.mk-lbl{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin-top:1px;}
+.mk-p .mk-lbl{color:var(--pass);} .mk-s .mk-lbl{color:var(--skip);}
+.mod-chevron{font-size:12px;color:var(--ink-3);flex-shrink:0;margin-top:4px;transition:transform .2s;}
+.mod-chevron.open{transform:rotate(90deg);}
+.mod-body{display:block;}
+.mod-body.collapsed{display:none;}
+.suite-tabs{display:flex;gap:0;overflow-x:auto;padding:0 22px;background:#fff;border-bottom:1px solid var(--border-light);scrollbar-width:thin;}
+.suite-tabs::-webkit-scrollbar{height:3px;}
+.suite-tabs::-webkit-scrollbar-thumb{background:var(--border);}
+.stab{display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--ink-3);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;transition:all .15s;user-select:none;flex-shrink:0;}
+.stab:hover{color:var(--ink);}
+.stab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.tbg{font-size:10px;padding:1px 6px;border-radius:10px;font-family:'DM Mono',monospace;font-weight:600;line-height:1.4;}
+.tbg-p{background:var(--pass-bg);color:var(--pass);}
+.tbg-s{background:var(--skip-bg);color:var(--skip);}
+.suite-panel{display:none;}
+.suite-panel.active{display:block;}
+.sf-bar{display:flex;align-items:center;gap:6px;padding:9px 22px;border-bottom:1px solid var(--border-light);background:var(--surface);flex-wrap:wrap;}
+.sf-btn{padding:3px 11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Mono',monospace;transition:all .12s;color:var(--ink-3);}
+.sf-btn.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.sf-btn.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.sf-btn.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.sf-btn.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.sf-count{font-size:11px;color:var(--ink-3);margin-left:auto;font-family:'DM Mono',monospace;}
+.test-list{}
+.trow{display:flex;align-items:center;gap:10px;padding:7px 22px;border-bottom:1px solid var(--border-light);transition:background .1s;}
+.trow:last-child{border-bottom:none;}
+.trow:hover{background:#f8fafc;}
+.trow.row-hidden{display:none;}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tdot.p{background:var(--pass-accent);} .tdot.s{background:var(--skip-accent);} .tdot.f{background:var(--fail-accent);}
+.tname{flex:1;font-size:12.5px;color:var(--ink-2);line-height:1.4;}
+.tc-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);margin-right:4px;}
+.t-badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;flex-shrink:0;}
+.t-badge.p{background:var(--pass-bg);color:var(--pass);}
+.t-badge.s{background:var(--skip-bg);color:var(--skip);}
+.t-badge.f{background:var(--fail-bg);color:var(--fail);}
+.tdur{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);flex-shrink:0;min-width:52px;text-align:right;}
+.no-match{padding:24px;text-align:center;color:var(--ink-3);font-size:12.5px;font-style:italic;display:none;}
+.sidebar{display:flex;flex-direction:column;gap:16px;position:sticky;top:52px;align-self:start;max-height:calc(100vh - 64px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.scard{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
+.sc-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--ink);margin-bottom:3px;}
+.sc-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;}
+.donut-wrap{display:flex;align-items:center;gap:16px;}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+.leg-row{display:flex;align-items:center;gap:7px;font-size:12.5px;}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.leg-dot.p{background:var(--pass-accent);} .leg-dot.s{background:var(--skip-accent);} .leg-dot.f{background:var(--fail-accent);}
+.leg-lbl{flex:1;color:var(--ink-3);}
+.leg-cnt{font-weight:700;font-family:'DM Mono',monospace;}
+.zero-box{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--pass-bg);border-radius:8px;border:1px solid #a7f3c0;margin-bottom:13px;}
+.sum-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light);font-size:12.5px;}
+.sum-row:last-child{border-bottom:none;}
+.sum-k{color:var(--ink-3);}
+.sum-v{font-weight:700;font-family:'DM Mono',monospace;}
+.env-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--pass-bg);color:var(--pass);border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.env-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border-light);}
+.env-row:last-child{border-bottom:none;}
+.env-k{color:var(--ink-3);}
+.env-v{font-weight:500;font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;}
+.skip-note{font-size:10.5px;color:var(--skip);font-style:italic;margin-top:2px;display:block;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">PeConnect CPaaS &middot; Prod Sanity &middot; Post-Deployment &middot; Sprint 9</div>
+    <h1 class="hero-title">Post-Deployment <em>Sanity Report</em></h1>
+    <p class="hero-sub">Production smoke check — critical flows validated on PROD immediately after Sprint 9 deployment.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="meta-label">Executed</div><div class="meta-value">22 Jun 2026</div></div>
+      <div class="meta-item"><div class="meta-label">Environment</div><div class="meta-value">PRODUCTION</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">CPaaS &mdash; PeConnect</div></div>
+      <div class="meta-item"><div class="meta-label">Browser</div><div class="meta-value">Firefox</div></div>
+      <div class="meta-item"><div class="meta-label">Sprint</div><div class="meta-value">Sprint 9</div></div>
+      <div class="meta-item"><div class="meta-label">Duration</div><div class="meta-value">6.6 min</div></div>
+      <div class="meta-item"><div class="meta-label">Tester</div><div class="meta-value">Ashutosh Kumar</div></div>
+      <div class="meta-item"><div class="meta-label">Overall Status</div><div class="meta-value all-pass">&#10003; ALL PASS</div></div>
+    </div>
+  </div>
+</header>
+
+<section class="kpi-strip">
+  <div class="kpi-grid">
+    <div class="kpi-cell"><div class="kpi-num t">47</div><div class="kpi-lbl">Total Tests</div><div class="kpi-line t"></div></div>
+    <div class="kpi-cell"><div class="kpi-num p">45</div><div class="kpi-lbl">Passed</div><div class="kpi-line p"></div></div>
+    <div class="kpi-cell"><div class="kpi-num s">2</div><div class="kpi-lbl">Skipped</div><div class="kpi-line s"></div></div>
+    <div class="kpi-cell"><div class="kpi-num f">0</div><div class="kpi-lbl">Failed</div><div class="kpi-line f"></div></div>
+    <div class="kpi-cell"><div class="kpi-num r">100%</div><div class="kpi-lbl">Pass Rate</div><div class="kpi-line r"></div></div>
+  </div>
+</section>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <span class="toolbar-label">Filter:</span>
+    <div class="filter-group">
+      <button class="fpill on-all" onclick="globalFilter('all',this)">All &nbsp;<span id="cnt-all">47</span></button>
+      <button class="fpill" onclick="globalFilter('pass',this)"><span class="fdot p"></span>&nbsp;Passed &nbsp;<span id="cnt-pass">45</span></button>
+      <button class="fpill" onclick="globalFilter('skip',this)"><span class="fdot s"></span>&nbsp;Skipped &nbsp;<span id="cnt-skip">2</span></button>
+      <button class="fpill" onclick="globalFilter('fail',this)"><span class="fdot f"></span>&nbsp;Failed &nbsp;<span>0</span></button>
+    </div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M11.5 7a4.499 4.499 0 11-8.998 0A4.499 4.499 0 0111.5 7zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/></svg>
+      <input id="q" placeholder="Search test cases..." oninput="onSearch(this.value)">
+    </div>
+    <button class="btn-sm" onclick="toggleAll()">Collapse All</button>
+  </div>
+</div>
+
+<div class="layout">
+  <div id="mod-col"></div>
+  <div class="sidebar">
+    <div class="scard">
+      <div class="sc-title">Result Distribution</div>
+      <p class="sc-sub">Breakdown of 47 tests</p>
+      <div class="donut-wrap">
+        <svg width="110" height="110" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#eaeef2" stroke-width="20"/>
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#2da44e" stroke-width="20"
+            stroke-dasharray="330.9 345.6" stroke-dashoffset="86.4" transform="rotate(-90 75 75)"/>
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#bf8700" stroke-width="20"
+            stroke-dasharray="14.7 345.6" stroke-dashoffset="-330.9" transform="rotate(-90 75 75)"/>
+          <text x="75" y="70" text-anchor="middle" font-size="22" font-weight="700" fill="#0d1117" font-family="Georgia,serif">45</text>
+          <text x="75" y="87" text-anchor="middle" font-size="10" fill="#57606a" font-family="Arial,sans-serif">passed</text>
+        </svg>
+        <div class="legend">
+          <div class="leg-row"><div class="leg-dot p"></div><span class="leg-lbl">Passed</span><span class="leg-cnt" style="color:var(--pass)">45</span></div>
+          <div class="leg-row"><div class="leg-dot s"></div><span class="leg-lbl">Skipped</span><span class="leg-cnt" style="color:var(--skip)">2</span></div>
+          <div class="leg-row"><div class="leg-dot f"></div><span class="leg-lbl">Failed</span><span class="leg-cnt" style="color:var(--fail)">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Run Summary</div>
+      <p class="sc-sub">Sprint 9 post-deployment sanity</p>
+      <div class="zero-box">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="var(--pass)"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>
+        <span style="font-size:12.5px;font-weight:600;color:var(--pass)">Zero failures — PROD is healthy</span>
+      </div>
+      <div class="sum-row"><span class="sum-k">Total Tests</span><span class="sum-v">47</span></div>
+      <div class="sum-row"><span class="sum-k">Passed</span><span class="sum-v" style="color:var(--pass)">45</span></div>
+      <div class="sum-row"><span class="sum-k">Skipped</span><span class="sum-v" style="color:var(--skip)">2</span></div>
+      <div class="sum-row"><span class="sum-k">Failed</span><span class="sum-v">0</span></div>
+      <div class="sum-row"><span class="sum-k">Pass Rate</span><span class="sum-v" style="color:var(--accent)">100%</span></div>
+      <div class="sum-row"><span class="sum-k">Duration</span><span class="sum-v">6.6 min</span></div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Environment</div>
+      <p class="sc-sub">Execution details</p>
+      <div class="env-badge">&#9679; PRODUCTION</div>
+      <div class="env-row"><span class="env-k">Project</span><span class="env-v">PeConnect CPaaS</span></div>
+      <div class="env-row"><span class="env-k">Sprint</span><span class="env-v">Sprint 9</span></div>
+      <div class="env-row"><span class="env-k">Run Type</span><span class="env-v">Post-Deploy Sanity</span></div>
+      <div class="env-row"><span class="env-k">Browser</span><span class="env-v">Firefox</span></div>
+      <div class="env-row"><span class="env-k">Workers</span><span class="env-v">1</span></div>
+      <div class="env-row"><span class="env-k">Date</span><span class="env-v">22 Jun 2026</span></div>
+      <div class="env-row"><span class="env-k">Executed by</span><span class="env-v">Ashutosh Kumar</span></div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Skip Notes</div>
+      <p class="sc-sub">2 tests intentionally skipped</p>
+      <div class="sum-row" style="flex-direction:column;gap:4px;align-items:flex-start;">
+        <span class="sum-k" style="font-weight:600;color:var(--ink-2)">TC_CPS_5</span>
+        <span style="font-size:11.5px;color:var(--ink-3)">TEST_USER_RECOVERY_EMAIL not set — add registered email to .env.prod</span>
+      </div><div class="sum-row" style="flex-direction:column;gap:4px;align-items:flex-start;">
+        <span class="sum-k" style="font-weight:600;color:var(--ink-2)">TC_CPS_6</span>
+        <span style="font-size:11.5px;color:var(--ink-3)">TEST_RESET_KEY not set — generate a valid reset token and add to .env.prod</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const R = {"stats":{"total":47,"pass":45,"skip":2,"fail":0},"modules":[{"name": "Authentication", "icon": "🔐", "desc": "Login flows, 2FA/OTP validation and session management on PROD.", "suites": [{"label": "Login Sanity", "tests": [{"title": "TC_CPS_1 - Login page loads with all required elements", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CPS_2 - Invalid credentials keep user on login page", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CPS_3 - Empty username and password shows validation messages", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CPS_4 - Valid login redirects to OTP verification page", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CPS_5 - Forgot password with valid email shows confirmation modal", "status": "skip", "duration": 0, "skipNote": "TEST_USER_RECOVERY_EMAIL not set — add registered email to .env.prod"}, {"title": "TC_CPS_6 - Valid password reset shows success toast and redirects to login", "status": "skip", "duration": 0, "skipNote": "TEST_RESET_KEY not set — generate a valid reset token and add to .env.prod"}]}, {"label": "2FA Sanity", "tests": [{"title": "TC004 - 2FA page loads after valid credentials", "status": "pass", "duration": 0, "skipNote": ""}]}]}, {"name": "Create Template", "icon": "📝", "desc": "Template creation flows: form sections, dropdowns, validation, header types, interactive actions, submit.", "suites": [{"label": "Create Template Sanity", "tests": [{"title": "TC_CT_S_001 - Create template page loads with all required form sections", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_002 - WABA ID dropdown returns at least 1 option", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_003 - Category dropdown returns at least 1 option", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_004 - Language dropdown returns at least 1 option", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_005 - Submitting empty form shows required-field validation errors", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_006 - Template name with fewer than 3 chars does not show availability message", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_007 - Minimal valid template submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_008 - Cancel button navigates back to template list without creating", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_009 - Header type dropdown returns at least 1 option", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_010 - Interactive Actions dropdown returns at least 1 option", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_011 - Selecting Quick Reply shows at least 1 button input field", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_012 - Selecting CTA-URL shows URL input field", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_013 - Selecting CTA-Phone shows phone number input field", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_014 - Template Preview panel is visible on page load", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_015 - Template with TEXT header submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_016 - Template with IMAGE header submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_017 - Template with VIDEO header submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_018 - Template with DOCUMENT header submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_019 - Template with CTA-URL DYNAMIC tracking ON submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_020 - Template with TEXT header+variable and body variables submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_021 - \"Request Contact Info\" option is available in interactive type dropdown", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_022 - Selecting Request Contact Info shows notice and hides header and footer", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_023 - Request Contact Info template with no body variables submits successfully", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC_CT_S_024 - Request Contact Info template with body variables and examples submits successfully", "status": "pass", "duration": 0, "skipNote": ""}]}]}, {"name": "Template List", "icon": "📋", "desc": "Template listing: columns, data, action icons, filters, search, pagination and bulk operations.", "suites": [{"label": "Template List Sanity", "tests": [{"title": "TC021 - Template list page loads with correct columns", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC022 - Template table shows data (at least 1 row)", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC023 - APPROVED row has 3 action icons (view + edit + delete)", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC024 - Partial name search returns filtered results", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC025 - Non-existing name search returns empty list", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC026 - Status dropdown has only Pending, Approved, Rejected (no Deleted)", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC027 - Reset button clears all filters", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC028 - Delete icon shows confirmation dialog before deleting", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC029 - Previous button is disabled on page 1", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC030 - Status dropdown contains All, Pending, Approved, Rejected — no Deleted", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC031 - Final Category dropdown contains Marketing and Utility", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC032 - Table columns are in correct order", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC033 - Search button is enabled when template name is filled", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC034 - Download button triggers email report toast", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC035 - Create Template button navigates to create page", "status": "pass", "duration": 0, "skipNote": ""}, {"title": "TC036 - Bulk Delete N templates from page 1", "status": "pass", "duration": 0, "skipNote": ""}]}]}]};
+
+let gFilter = 'all';
+let gSearch = '';
+const sFilter = {};
+
+function makeRow(t) {
+  const m = t.title.match(/^(TC[\w\-._]+)\s*[-–]\s*(.+)$/);
+  const id   = m ? `<span class="tc-id">${m[1]}</span>` : '';
+  const name = m ? m[2] : t.title;
+  const dur  = t.status==='skip' ? '—' : `${t.duration.toLocaleString()}ms`;
+  const bl   = t.status==='pass'?'&#10003; Pass':t.status==='skip'?'&#9675; Skip':'&#10007; Fail';
+  const skipNote = (t.status==='skip' && t.skipNote) ? `<span class="skip-note">${t.skipNote}</span>` : '';
+  return `<div class="trow" data-s="${t.status}" data-q="${t.title.toLowerCase()}">
+    <div class="tdot ${t.status[0]}"></div>
+    <div class="tname">${id}${name}${skipNote}</div>
+    <div class="t-badge ${t.status[0]}">${bl}</div>
+    <div class="tdur">${dur}</div>
+  </div>`;
+}
+
+function makeSfBar(mi, sid, tests) {
+  const sp = tests.filter(t=>t.status==='pass').length;
+  const ss = tests.filter(t=>t.status==='skip').length;
+  const sf = tests.filter(t=>t.status==='fail').length;
+  return `<div class="sf-bar" id="sfbar-${mi}-${sid}">
+    <button class="sf-btn on-all" onclick="setSuiteFilter(${mi},'${sid}','all',this)">All ${tests.length}</button>
+    <button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','pass',this)">&#10003; Pass ${sp}</button>
+    ${ss>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','skip',this)">&#9675; Skip ${ss}</button>`:''}
+    ${sf>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','fail',this)">&#10007; Fail ${sf}</button>`:''}
+    <span class="sf-count" id="sc-${mi}-${sid}">${tests.length} tests</span>
+  </div>`;
+}
+
+function build() {
+  const col = document.getElementById('mod-col');
+  col.innerHTML = '';
+  R.modules.forEach((mod, mi) => {
+    sFilter[mi] = {};
+    const allTests = mod.suites.flatMap(s => s.tests);
+    const modPass  = allTests.filter(t=>t.status==='pass').length;
+    const modSkip  = allTests.filter(t=>t.status==='skip').length;
+    const modTotal = allTests.length;
+    sFilter[mi]['all'] = 'all';
+    mod.suites.forEach((s, si) => sFilter[mi][si] = 'all');
+
+    const allBadge = `<span class="tbg tbg-p">&#10003;${modPass}</span>${modSkip>0?` <span class="tbg tbg-s">&#9675;${modSkip}</span>`:''}`;
+    let tabsHtml = `<div class="stab active" id="tab-${mi}-all" onclick="switchTab(${mi},'all')">All ${allBadge}</div>`;
+    tabsHtml += mod.suites.map((s, si) => {
+      const sp = s.tests.filter(t=>t.status==='pass').length;
+      const ss = s.tests.filter(t=>t.status==='skip').length;
+      let badges = `<span class="tbg tbg-p">&#10003;${sp}</span>`;
+      if (ss > 0) badges += ` <span class="tbg tbg-s">&#9675;${ss}</span>`;
+      return `<div class="stab" id="tab-${mi}-${si}" onclick="switchTab(${mi},${si})">${s.label} ${badges}</div>`;
+    }).join('');
+
+    let panelsHtml = `<div class="suite-panel active" id="sp-${mi}-all">
+      ${makeSfBar(mi,'all',allTests)}
+      <div class="test-list" id="tl-${mi}-all">${allTests.map(makeRow).join('')}</div>
+      <div class="no-match" id="nm-${mi}-all">No tests match the current filter.</div>
+    </div>`;
+    panelsHtml += mod.suites.map((s, si) => {
+      return `<div class="suite-panel" id="sp-${mi}-${si}">
+        ${makeSfBar(mi,si,s.tests)}
+        <div class="test-list" id="tl-${mi}-${si}">${s.tests.map(makeRow).join('')}</div>
+        <div class="no-match" id="nm-${mi}-${si}">No tests match the current filter.</div>
+      </div>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'mod-card';
+    card.id = `mc-${mi}`;
+    card.innerHTML = `
+      <div class="mod-hdr" onclick="toggleMod(${mi})">
+        <div class="mod-hdr-left">
+          <span class="mod-icon">${mod.icon}</span>
+          <div>
+            <div class="mod-title">${mod.name}</div>
+            <div class="mod-desc">${mod.desc}</div>
+          </div>
+        </div>
+        <div class="mod-kpis">
+          <div class="mk mk-t"><div class="mk-num">${modTotal}</div><div class="mk-lbl">Total</div></div>
+          <div class="mk mk-p"><div class="mk-num">${modPass}</div><div class="mk-lbl">Pass</div></div>
+          <div class="mk mk-s"><div class="mk-num">${modSkip}</div><div class="mk-lbl">Skip</div></div>
+        </div>
+        <span class="mod-chevron open" id="chev-${mi}">&#9654;</span>
+      </div>
+      <div class="mod-body" id="mb-${mi}">
+        <div class="suite-tabs" id="stabs-${mi}">${tabsHtml}</div>
+        <div id="spnls-${mi}">${panelsHtml}</div>
+      </div>`;
+    col.appendChild(card);
+  });
+}
+
+function toggleMod(mi) {
+  const body = document.getElementById(`mb-${mi}`);
+  const chev = document.getElementById(`chev-${mi}`);
+  const open = !body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', open);
+  chev.classList.toggle('open', !open);
+}
+
+let allCollapsed = false;
+function toggleAll() {
+  allCollapsed = !allCollapsed;
+  R.modules.forEach((_, mi) => {
+    const body = document.getElementById(`mb-${mi}`);
+    const chev = document.getElementById(`chev-${mi}`);
+    body.classList.toggle('collapsed', allCollapsed);
+    chev.classList.toggle('open', !allCollapsed);
+  });
+  document.querySelector('.btn-sm').textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
+
+function switchTab(mi, si) {
+  document.querySelectorAll(`#stabs-${mi} .stab`).forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll(`#spnls-${mi} .suite-panel`).forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${mi}-${si}`).classList.add('active');
+  document.getElementById(`sp-${mi}-${si}`).classList.add('active');
+  applyToSuite(mi, si);
+}
+
+function setSuiteFilter(mi, si, status, btn) {
+  sFilter[mi][si] = status;
+  const bar = document.getElementById(`sfbar-${mi}-${si}`);
+  bar.querySelectorAll('.sf-btn').forEach(b => { b.className = 'sf-btn'; });
+  btn.className = `sf-btn on-${status}`;
+  applyToSuite(mi, si);
+}
+
+function applyToSuite(mi, si) {
+  const sf = sFilter[mi][si] || 'all';
+  const rows = document.querySelectorAll(`#tl-${mi}-${si} .trow`);
+  let vis = 0;
+  rows.forEach(row => {
+    const rs = row.dataset.s;
+    const rq = row.dataset.q;
+    const sfOk = sf === 'all' || rs === sf;
+    const gfOk = gFilter === 'all' || rs === gFilter;
+    const sqOk = !gSearch || rq.includes(gSearch);
+    const show = sfOk && gfOk && sqOk;
+    row.classList.toggle('row-hidden', !show);
+    if (show) vis++;
+  });
+  const sc = document.getElementById(`sc-${mi}-${si}`);
+  if (sc) sc.textContent = `${vis} test${vis!==1?'s':''}`;
+  const nm = document.getElementById(`nm-${mi}-${si}`);
+  if (nm) nm.style.display = vis === 0 ? 'block' : 'none';
+}
+
+function applyAll() {
+  R.modules.forEach((mod, mi) => {
+    let modHasVisible = false;
+    const sids = ['all', ...mod.suites.map((_,si) => si)];
+    sids.forEach(sid => {
+      applyToSuite(mi, sid);
+      const rows = document.querySelectorAll(`#tl-${mi}-${sid} .trow:not(.row-hidden)`);
+      if (rows.length > 0) modHasVisible = true;
+    });
+    const card = document.getElementById(`mc-${mi}`);
+    if (gFilter === 'all' && !gSearch) {
+      card.classList.remove('card-hidden');
+    } else {
+      card.classList.toggle('card-hidden', !modHasVisible);
+    }
+  });
+}
+
+function globalFilter(status, btn) {
+  gFilter = status;
+  document.querySelectorAll('.fpill').forEach(p => { p.className = 'fpill'; });
+  btn.className = `fpill on-${status}`;
+  if (status !== 'all') {
+    R.modules.forEach((_, mi) => {
+      const body = document.getElementById(`mb-${mi}`);
+      const chev = document.getElementById(`chev-${mi}`);
+      body.classList.remove('collapsed');
+      chev.classList.add('open');
+    });
+    allCollapsed = false;
+    document.querySelector('.btn-sm').textContent = 'Collapse All';
+  }
+  applyAll();
+}
+
+function onSearch(val) {
+  gSearch = val.trim().toLowerCase();
+  if (gSearch) {
+    R.modules.forEach((_, mi) => {
+      document.getElementById(`mb-${mi}`).classList.remove('collapsed');
+      document.getElementById(`chev-${mi}`).classList.add('open');
+    });
+    allCollapsed = false;
+  }
+  applyAll();
+}
+
+build();
+
+function fixSidebarTop() {
+  const toolbar = document.querySelector('.toolbar');
+  const sidebar = document.querySelector('.sidebar');
+  if (toolbar && sidebar) {
+    const h = toolbar.getBoundingClientRect().height;
+    sidebar.style.top = (h + 8) + 'px';
+    sidebar.style.maxHeight = 'calc(100vh - ' + (h + 16) + 'px)';
+  }
+}
+fixSidebarTop();
+window.addEventListener('resize', fixSidebarTop);
+</script>
+</body>
+</html>
