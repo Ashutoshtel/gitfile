@@ -1,1 +1,473 @@
-22nd july prod release
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prod Release Report — PeConnect CPaaS · PROD · Sprint 11</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0d1117; --ink-2:#24292f; --ink-3:#57606a;
+  --surface:#f6f8fa; --surface-2:#ffffff;
+  --border:#d0d7de; --border-light:#eaeef2;
+  --pass:#1a7f37; --pass-bg:#dafbe1; --pass-accent:#2da44e;
+  --skip:#7d4e00; --skip-bg:#fff8c5; --skip-accent:#bf8700;
+  --fail:#cf222e; --fail-bg:#ffebe9; --fail-accent:#cf222e;
+  --accent:#0969da; --accent-bg:#ddf4ff;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(27,31,36,.12),0 8px 24px rgba(66,74,83,.06);
+  --shadow-sm:0 1px 2px rgba(27,31,36,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--ink);line-height:1.5;font-size:14px;}
+
+.hero{background:var(--ink);padding:48px 0 0;width:100%;overflow:hidden;}
+.hero-inner{max-width:1200px;margin:0 auto;padding:0 40px;position:relative;}
+.hero-inner::before{content:'';position:fixed;top:0;left:0;right:0;height:260px;background:repeating-linear-gradient(-45deg,transparent,transparent 24px,rgba(255,255,255,.018) 24px,rgba(255,255,255,.018) 25px);pointer-events:none;z-index:0;}
+.hero-meta{display:flex;gap:0;flex-wrap:wrap;padding:0;border-top:1px solid rgba(255,255,255,.08);position:relative;z-index:1;}
+.meta-item{padding:14px 28px 14px 0;}
+.meta-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;margin-bottom:3px;}
+.meta-value{font-size:13.5px;color:rgba(255,255,255,.9);font-weight:500;white-space:nowrap;}
+.meta-value.all-pass{color:#3fb950;font-weight:700;}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:4px 14px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.65);font-family:'DM Mono',monospace;margin-bottom:16px;position:relative;z-index:1;}
+.hero-tag::before{content:'●';color:#3fb950;font-size:8px;}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(28px,3.8vw,50px);line-height:1.12;color:#fff;margin-bottom:10px;position:relative;z-index:1;}
+.hero-title em{font-style:italic;color:rgba(255,255,255,.42);}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.46);margin-bottom:28px;font-weight:300;max-width:580px;position:relative;z-index:1;}
+
+.kpi-strip{background:#fff;border-bottom:1px solid var(--border);}
+.kpi-grid{max-width:1200px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:repeat(5,1fr);}
+.kpi-cell{padding:24px 20px;text-align:center;position:relative;}
+.kpi-cell+.kpi-cell::before{content:'';position:absolute;left:0;top:14%;height:72%;width:1px;background:var(--border-light);}
+.kpi-num{font-family:'DM Serif Display',serif;font-size:40px;line-height:1;margin-bottom:4px;}
+.kpi-num.t{color:var(--ink)}.kpi-num.p{color:var(--pass)}.kpi-num.s{color:var(--skip)}.kpi-num.f{color:var(--fail)}.kpi-num.r{color:var(--accent)}
+.kpi-lbl{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;}
+.kpi-line{height:3px;width:44px;border-radius:2px;margin:8px auto 0;}
+.kpi-line.t{background:var(--ink-2)}.kpi-line.p{background:var(--pass-accent)}.kpi-line.s{background:var(--skip-accent)}.kpi-line.f{background:var(--fail-accent)}.kpi-line.r{background:var(--accent)}
+
+.toolbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:0;z-index:200;box-shadow:var(--shadow-sm);}
+.toolbar-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.toolbar-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-family:'DM Mono',monospace;flex-shrink:0;}
+.filter-group{display:flex;gap:5px;flex-wrap:wrap;}
+.fpill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--ink-3);font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.fpill:hover{border-color:var(--ink-3);}
+.fpill.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.fpill.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.fpill.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.fpill.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.fdot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.fdot.p{background:var(--pass-accent)}.fdot.s{background:var(--skip-accent)}.fdot.f{background:var(--fail-accent)}
+.search-box{position:relative;flex:1;min-width:180px;max-width:300px;}
+.search-box svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none;}
+#q{width:100%;padding:6px 10px 6px 30px;border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;transition:border-color .15s;}
+#q:focus{border-color:var(--accent);}
+.btn-sm{padding:5px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:11.5px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--ink-3);transition:all .15s;font-weight:500;white-space:nowrap;}
+.btn-sm:hover{background:var(--surface);border-color:var(--ink-3);}
+
+.layout{max-width:1200px;margin:0 auto;padding:28px 40px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;}
+
+.mod-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.mod-card.card-hidden{display:none;}
+.mod-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 22px;background:var(--surface);border-bottom:1px solid var(--border-light);cursor:pointer;user-select:none;}
+.mod-hdr:hover{background:#edf0f3;}
+.mod-hdr-left{display:flex;align-items:flex-start;gap:11px;flex:1;}
+.mod-icon{font-size:20px;line-height:1;padding-top:2px;flex-shrink:0;}
+.mod-title{font-weight:700;font-size:14.5px;color:var(--ink);margin-bottom:2px;}
+.mod-desc{font-size:11.5px;color:var(--ink-3);line-height:1.5;max-width:480px;}
+.mod-kpis{display:flex;border:1px solid var(--border-light);border-radius:8px;overflow:hidden;flex-shrink:0;margin-top:2px;}
+.mk{padding:7px 13px;text-align:center;border-right:1px solid var(--border-light);}
+.mk:last-child{border-right:none;}
+.mk-t{background:var(--surface);} .mk-p{background:var(--pass-bg);} .mk-s{background:var(--skip-bg);}
+.mk-num{font-family:'DM Serif Display',serif;font-size:19px;line-height:1;}
+.mk-t .mk-num{color:var(--ink);} .mk-p .mk-num{color:var(--pass);} .mk-s .mk-num{color:var(--skip);}
+.mk-lbl{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin-top:1px;}
+.mk-p .mk-lbl{color:var(--pass);} .mk-s .mk-lbl{color:var(--skip);}
+.mod-chevron{font-size:12px;color:var(--ink-3);flex-shrink:0;margin-top:4px;transition:transform .2s;}
+.mod-chevron.open{transform:rotate(90deg);}
+.mod-body{display:block;}
+.mod-body.collapsed{display:none;}
+
+.suite-tabs{display:flex;gap:0;overflow-x:auto;padding:0 22px;background:#fff;border-bottom:1px solid var(--border-light);scrollbar-width:thin;}
+.suite-tabs::-webkit-scrollbar{height:3px;}
+.suite-tabs::-webkit-scrollbar-thumb{background:var(--border);}
+.stab{display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--ink-3);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;transition:all .15s;user-select:none;flex-shrink:0;}
+.stab:hover{color:var(--ink);}
+.stab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+.tbg{font-size:10px;padding:1px 6px;border-radius:10px;font-family:'DM Mono',monospace;font-weight:600;line-height:1.4;}
+.tbg-p{background:var(--pass-bg);color:var(--pass);}
+.tbg-s{background:var(--skip-bg);color:var(--skip);}
+
+.suite-panel{display:none;}
+.suite-panel.active{display:block;}
+
+.sf-bar{display:flex;align-items:center;gap:6px;padding:9px 22px;border-bottom:1px solid var(--border-light);background:var(--surface);flex-wrap:wrap;}
+.sf-btn{padding:3px 11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Mono',monospace;transition:all .12s;color:var(--ink-3);}
+.sf-btn.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.sf-btn.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.sf-btn.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.sf-btn.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.sf-count{font-size:11px;color:var(--ink-3);margin-left:auto;font-family:'DM Mono',monospace;}
+
+.test-list{}
+.trow{display:flex;align-items:center;gap:10px;padding:7px 22px;border-bottom:1px solid var(--border-light);transition:background .1s;}
+.trow:last-child{border-bottom:none;}
+.trow:hover{background:#f8fafc;}
+.trow.row-hidden{display:none;}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tdot.p{background:var(--pass-accent);} .tdot.s{background:var(--skip-accent);} .tdot.f{background:var(--fail-accent);}
+.tname{flex:1;font-size:12.5px;color:var(--ink-2);line-height:1.4;}
+.tc-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);margin-right:4px;}
+.t-badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;flex-shrink:0;}
+.t-badge.p{background:var(--pass-bg);color:var(--pass);}
+.t-badge.s{background:var(--skip-bg);color:var(--skip);}
+.t-badge.f{background:var(--fail-bg);color:var(--fail);}
+.tdur{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);flex-shrink:0;min-width:52px;text-align:right;}
+.no-match{padding:24px;text-align:center;color:var(--ink-3);font-size:12.5px;font-style:italic;display:none;}
+
+.sidebar{display:flex;flex-direction:column;gap:16px;position:sticky;top:52px;align-self:start;max-height:calc(100vh - 64px);overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.scard{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
+.sc-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--ink);margin-bottom:3px;}
+.sc-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;}
+.donut-wrap{display:flex;align-items:center;gap:16px;}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+.leg-row{display:flex;align-items:center;gap:7px;font-size:12.5px;}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.leg-dot.p{background:var(--pass-accent);} .leg-dot.s{background:var(--skip-accent);} .leg-dot.f{background:var(--fail-accent);}
+.leg-lbl{flex:1;color:var(--ink-3);}
+.leg-cnt{font-weight:700;font-family:'DM Mono',monospace;}
+.zero-box{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--pass-bg);border-radius:8px;border:1px solid #a7f3c0;margin-bottom:13px;}
+.sum-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light);font-size:12.5px;}
+.sum-row:last-child{border-bottom:none;}
+.sum-k{color:var(--ink-3);}
+.sum-v{font-weight:700;font-family:'DM Mono',monospace;}
+.env-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--pass-bg);color:var(--pass);border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.env-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border-light);}
+.env-row:last-child{border-bottom:none;}
+.env-k{color:var(--ink-3);}
+.env-v{font-weight:500;font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;}
+
+.skip-note{font-size:10.5px;color:var(--skip);font-style:italic;margin-top:2px;display:block;}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">PeConnect CPaaS &middot; Prod Release &middot; Sprint 11</div>
+    <h1 class="hero-title">Prod Release <em>22 July 2026</em></h1>
+    <p class="hero-sub">Production release validation — Create Template (Panel &amp; S2S) OD flows and Template Fetch API validated on PROD after Sprint 11 deployment.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="meta-label">Executed</div><div class="meta-value">22 Jul 2026</div></div>
+      <div class="meta-item"><div class="meta-label">Environment</div><div class="meta-value">PRODUCTION</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">CPaaS &mdash; PeConnect</div></div>
+      <div class="meta-item"><div class="meta-label">Client</div><div class="meta-value">REST API (S2S + Panel)</div></div>
+      <div class="meta-item"><div class="meta-label">Sprint</div><div class="meta-value">Sprint 11</div></div>
+      <div class="meta-item"><div class="meta-label">Duration</div><div class="meta-value">5.9 min</div></div>
+      <div class="meta-item"><div class="meta-label">Tester</div><div class="meta-value">Ashutosh Kumar &mdash; QA</div></div>
+      <div class="meta-item"><div class="meta-label">Overall Status</div><div class="meta-value all-pass">&#10003; ALL PASS</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- KPI STRIP -->
+<section class="kpi-strip">
+  <div class="kpi-grid">
+    <div class="kpi-cell"><div class="kpi-num t">207</div><div class="kpi-lbl">Total Tests</div><div class="kpi-line t"></div></div>
+    <div class="kpi-cell"><div class="kpi-num p">207</div><div class="kpi-lbl">Passed</div><div class="kpi-line p"></div></div>
+    <div class="kpi-cell"><div class="kpi-num s">0</div><div class="kpi-lbl">Skipped</div><div class="kpi-line s"></div></div>
+    <div class="kpi-cell"><div class="kpi-num f">0</div><div class="kpi-lbl">Failed</div><div class="kpi-line f"></div></div>
+    <div class="kpi-cell"><div class="kpi-num r">100%</div><div class="kpi-lbl">Pass Rate</div><div class="kpi-line r"></div></div>
+  </div>
+</section>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <span class="toolbar-label">Filter:</span>
+    <div class="filter-group">
+      <button class="fpill on-all" onclick="globalFilter('all',this)">All &nbsp;<span id="cnt-all">207</span></button>
+      <button class="fpill" onclick="globalFilter('pass',this)"><span class="fdot p"></span>&nbsp;Passed &nbsp;<span id="cnt-pass">207</span></button>
+      <button class="fpill" onclick="globalFilter('skip',this)"><span class="fdot s"></span>&nbsp;Skipped &nbsp;<span id="cnt-skip">0</span></button>
+      <button class="fpill" onclick="globalFilter('fail',this)"><span class="fdot f"></span>&nbsp;Failed &nbsp;<span>0</span></button>
+    </div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M11.5 7a4.499 4.499 0 11-8.998 0A4.499 4.499 0 0111.5 7zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/></svg>
+      <input id="q" placeholder="Search test cases..." oninput="onSearch(this.value)">
+    </div>
+    <button class="btn-sm" onclick="toggleAll()">Collapse All</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <div id="mod-col"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="scard">
+      <div class="sc-title">Result Distribution</div>
+      <p class="sc-sub">Breakdown of 207 tests</p>
+      <div class="donut-wrap">
+        <svg width="110" height="110" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#eaeef2" stroke-width="20"/>
+          <!-- Pass arc: 207/207 = 100% of circumference=345.6 -->
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#2da44e" stroke-width="20"
+            stroke-dasharray="345.6 345.6" stroke-dashoffset="0" transform="rotate(-90 75 75)"/>
+          <text x="75" y="70" text-anchor="middle" font-size="22" font-weight="700" fill="#0d1117" font-family="Georgia,serif">207</text>
+          <text x="75" y="87" text-anchor="middle" font-size="10" fill="#57606a" font-family="Arial,sans-serif">passed</text>
+        </svg>
+        <div class="legend">
+          <div class="leg-row"><div class="leg-dot p"></div><span class="leg-lbl">Passed</span><span class="leg-cnt" style="color:var(--pass)">207</span></div>
+          <div class="leg-row"><div class="leg-dot s"></div><span class="leg-lbl">Skipped</span><span class="leg-cnt" style="color:var(--skip)">0</span></div>
+          <div class="leg-row"><div class="leg-dot f"></div><span class="leg-lbl">Failed</span><span class="leg-cnt" style="color:var(--fail)">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Run Summary</div>
+      <p class="sc-sub">Sprint 11 production release validation</p>
+      <div class="zero-box">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="var(--pass)"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/></svg>
+        <span style="font-size:12.5px;font-weight:600;color:var(--pass)">Zero failures — PROD is healthy</span>
+      </div>
+      <div class="sum-row"><span class="sum-k">Total Tests</span><span class="sum-v">207</span></div>
+      <div class="sum-row"><span class="sum-k">Passed</span><span class="sum-v" style="color:var(--pass)">207</span></div>
+      <div class="sum-row"><span class="sum-k">Skipped</span><span class="sum-v" style="color:var(--skip)">0</span></div>
+      <div class="sum-row"><span class="sum-k">Failed</span><span class="sum-v">0</span></div>
+      <div class="sum-row"><span class="sum-k">Pass Rate</span><span class="sum-v" style="color:var(--accent)">100%</span></div>
+      <div class="sum-row"><span class="sum-k">Duration</span><span class="sum-v">5.9 min</span></div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Environment</div>
+      <p class="sc-sub">Execution details</p>
+      <div class="env-badge">&#9679; PRODUCTION</div>
+      <div class="env-row"><span class="env-k">Project</span><span class="env-v">PeConnect CPaaS</span></div>
+      <div class="env-row"><span class="env-k">Sprint</span><span class="env-v">Sprint 11</span></div>
+      <div class="env-row"><span class="env-k">Run Type</span><span class="env-v">Prod Release Validation</span></div>
+      <div class="env-row"><span class="env-k">Client</span><span class="env-v">REST API (S2S + Panel)</span></div>
+      <div class="env-row"><span class="env-k">Workers</span><span class="env-v">1</span></div>
+      <div class="env-row"><span class="env-k">Date</span><span class="env-v">22 Jul 2026</span></div>
+      <div class="env-row"><span class="env-k">Executed by</span><span class="env-v">Ashutosh Kumar — QA</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const R = {"stats":{"total":207,"pass":207,"skip":0,"fail":0},"modules":[{"name":"Create Template — OD (S2S)","icon":"🔗","desc":"Order Details (OD) template creation via S2S API — header/button combinations and validation scenarios.","suites":[{"label":"🔗 Create Template S2S — Order Details (TC_CT_S2S_005–013)","file":"api/s2s/create-template-s2s.spec.ts","tests":[{"title":"TC_CT_S2S_005 - OD template with IMAGE header and ORDER_DETAILS button (MARKETING) returns SUCCESS","status":"pass","duration":7638},{"title":"TC_CT_S2S_006 - OD template with UTILITY category — test actual behavior","status":"pass","duration":4985},{"title":"TC_CT_S2S_007 - OD with TEXT header returns error","status":"pass","duration":67},{"title":"TC_CT_S2S_008 - OD with VIDEO header returns error","status":"pass","duration":44},{"title":"TC_CT_S2S_009 - OD with DOCUMENT header returns error","status":"pass","duration":46},{"title":"TC_CT_S2S_010 - OD with non-ORDER_DETAILS button (QUICK_REPLY) returns error","status":"pass","duration":53},{"title":"TC_CT_S2S_011 - OD with ORDER_DETAILS plus a second button returns error","status":"pass","duration":41},{"title":"TC_CT_S2S_012 - OD with custom ORDER_DETAILS button text — verify actual button text in response","status":"pass","duration":6316},{"title":"TC_CT_S2S_013 - OD with portfolioIds in S2S payload — document actual behavior","status":"pass","duration":45}]},{"label":"🔗 Create Template S2S — Order Details Field Validation (TC_CT_S2S_014–018)","file":"api/s2s/create-template-s2s.spec.ts","tests":[{"title":"TC_CT_S2S_014 - OD template name with uppercase/spaces/special chars returns error","status":"pass","duration":38},{"title":"TC_CT_S2S_015 - OD template name exceeding 512 chars returns error","status":"pass","duration":37},{"title":"TC_CT_S2S_016 - OD body text exceeding 1024 chars returns error","status":"pass","duration":1501},{"title":"TC_CT_S2S_017 - OD body with NO variable placeholder — test actual behavior (PRD: must have at least one)","status":"pass","duration":5358},{"title":"TC_CT_S2S_018 - OD footer text exceeding 60 chars returns error","status":"pass","duration":2969}]},{"label":"🔗 Create Template S2S — Order Details Additional Validation (TC_CT_S2S_019–025)","file":"api/s2s/create-template-s2s.spec.ts","tests":[{"title":"TC_CT_S2S_019 - OD with missing waba_id returns error","status":"pass","duration":41},{"title":"TC_CT_S2S_020 - OD with isOrderDetail:true and empty buttons array auto-injects ORDER_DETAILS button and succeeds","status":"pass","duration":7420},{"title":"TC_CT_S2S_021 - OD with isOrderDetail:true and buttons field omitted auto-injects ORDER_DETAILS button and succeeds","status":"pass","duration":7025},{"title":"TC_CT_S2S_022 - OD body with variable {{1}} but missing examples returns error","status":"pass","duration":48},{"title":"TC_CT_S2S_023 - OD with invalid language code returns error","status":"pass","duration":311},{"title":"TC_CT_S2S_024 - S2S response Content-Type is application/json","status":"pass","duration":5025},{"title":"TC_CT_S2S_025 - Rapid OD creates are handled gracefully — no 500 returned","status":"pass","duration":38060}]}]},{"name":"Create Template — OD (Panel)","icon":"📝","desc":"Order Details (OD) template creation via Panel API — end-to-end field and config validation.","suites":[{"label":"🔗 Create Template API — Order Details (TC_CT_A_048–066)","file":"api/create-template-api.spec.ts","tests":[{"title":"TC_CT_A_048 - OD template IMAGE header + ORDER_DETAILS button (MARKETING) returns SUCCESS","status":"pass","duration":7034},{"title":"TC_CT_A_049 - OD template with UTILITY category returns SUCCESS","status":"pass","duration":7017},{"title":"TC_CT_A_050 - OD with TEXT header returns error","status":"pass","duration":63},{"title":"TC_CT_A_051 - OD with VIDEO header returns error","status":"pass","duration":64},{"title":"TC_CT_A_052 - OD with DOCUMENT header returns error","status":"pass","duration":62},{"title":"TC_CT_A_053 - OD with non-ORDER_DETAILS button (QUICK_REPLY) returns error","status":"pass","duration":58},{"title":"TC_CT_A_054 - OD with ORDER_DETAILS plus a second button returns error","status":"pass","duration":56},{"title":"TC_CT_A_055 - OD with custom ORDER_DETAILS button text — log actual button text in response","status":"pass","duration":7225},{"title":"TC_CT_A_056 - OD panel payload without portfolioIds returns error","status":"pass","duration":61},{"title":"TC_CT_A_057 - OD template name with invalid format returns error","status":"pass","duration":67},{"title":"TC_CT_A_058 - OD body text exceeding 1024 chars returns error","status":"pass","duration":1766},{"title":"TC_CT_A_059 - OD body with NO variable placeholder — test actual behavior","status":"pass","duration":5708},{"title":"TC_CT_A_060 - OD with IMAGE header but empty mediaObjectName returns error","status":"pass","duration":6583},{"title":"TC_CT_A_061 - OD footer text exceeding 60 chars returns error","status":"pass","duration":3092},{"title":"TC_CT_A_062 - OD body with variable {{1}} but missing examples returns error","status":"pass","duration":62},{"title":"TC_CT_A_063 - OD with invalid language code returns error","status":"pass","duration":322},{"title":"TC_CT_A_064 - OD with isOrderDetail:true and empty buttons array auto-injects ORDER_DETAILS button and succeeds","status":"pass","duration":6621},{"title":"TC_CT_A_065 - OD with isOrderDetail:true and buttons field omitted auto-injects ORDER_DETAILS button and succeeds","status":"pass","duration":7425},{"title":"TC_CT_A_066 - Rapid OD creates are handled gracefully (no 500)","status":"pass","duration":34460}]}]},{"name":"Template Fetch API (S2S)","icon":"🔍","desc":"Template Fetch/Filter API — baseline, field boundary, pairwise, triple combinations, override priority, cross-brand isolation, security and auth checks.","suites":[{"label":"TC_TF_S2S_BASE — Baseline (one field at a time)","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_BASE_001 — template_id: own-portfolio valid ID","status":"pass","duration":95},{"title":"TC_TF_S2S_BASE_002 — template_name: valid own-portfolio name","status":"pass","duration":54},{"title":"TC_TF_S2S_BASE_003 — waba_id: own-portfolio valid","status":"pass","duration":75},{"title":"TC_TF_S2S_BASE_004 — status: APPROVED alone","status":"pass","duration":64},{"title":"TC_TF_S2S_BASE_005 — category: MARKETING alone","status":"pass","duration":55},{"title":"TC_TF_S2S_BASE_006 — start_date alone: valid ISO datetime","status":"pass","duration":52},{"title":"TC_TF_S2S_BASE_007 — end_date alone: valid ISO datetime","status":"pass","duration":52},{"title":"TC_TF_S2S_BASE_008 — sort_by alone: created_at","status":"pass","duration":48},{"title":"TC_TF_S2S_BASE_009 — sort_order alone: asc (no sort_by)","status":"pass","duration":49}]},{"label":"TC_TF_S2S_FIELD — Field Boundary","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_FIELD_001 — template_id: valid own-portfolio","status":"pass","duration":46},{"title":"TC_TF_S2S_FIELD_002 — template_id: other-brand template_id","status":"pass","duration":50},{"title":"TC_TF_S2S_FIELD_003 — template_id: non-existent","status":"pass","duration":48},{"title":"TC_TF_S2S_FIELD_004 — template_id: malformed (special chars)","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_005 — template_name: exact match","status":"pass","duration":45},{"title":"TC_TF_S2S_FIELD_006 — template_name: partial substring","status":"pass","duration":48},{"title":"TC_TF_S2S_FIELD_007 — template_name: case variant (UPPERCASE)","status":"pass","duration":48},{"title":"TC_TF_S2S_FIELD_008 — template_name: non-existent name","status":"pass","duration":45},{"title":"TC_TF_S2S_FIELD_009 — template_name: empty string \"\"","status":"pass","duration":45},{"title":"TC_TF_S2S_FIELD_010 — template_name: special characters","status":"pass","duration":45},{"title":"TC_TF_S2S_FIELD_011 — waba_id: valid own-portfolio","status":"pass","duration":56},{"title":"TC_TF_S2S_FIELD_012 — waba_id: other-brand waba_id","status":"pass","duration":39},{"title":"TC_TF_S2S_FIELD_013 — waba_id: non-existent","status":"pass","duration":43},{"title":"TC_TF_S2S_FIELD_014 — waba_id: malformed (letters)","status":"pass","duration":39},{"title":"TC_TF_S2S_FIELD_STATUS_PENDING — status: PENDING","status":"pass","duration":43},{"title":"TC_TF_S2S_FIELD_STATUS_APPROVED — status: APPROVED","status":"pass","duration":56},{"title":"TC_TF_S2S_FIELD_STATUS_REJECTED — status: REJECTED","status":"pass","duration":51},{"title":"TC_TF_S2S_FIELD_STATUS_PAUSED — status: PAUSED","status":"pass","duration":42},{"title":"TC_TF_S2S_FIELD_STATUS_DISABLED — status: DISABLED","status":"pass","duration":58},{"title":"TC_TF_S2S_FIELD_STATUS_IN_APPEAL — status: IN_APPEAL","status":"pass","duration":46},{"title":"TC_TF_S2S_FIELD_STATUS_DELETED — status: DELETED","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_015 — status: invalid enum \"FOO\"","status":"pass","duration":40},{"title":"TC_TF_S2S_FIELD_016 — status: lowercase \"approved\"","status":"pass","duration":37},{"title":"TC_TF_S2S_FIELD_017 — status: array form [\"APPROVED\"]","status":"pass","duration":34},{"title":"TC_TF_S2S_FIELD_CAT_MARKETING — category: MARKETING","status":"pass","duration":52},{"title":"TC_TF_S2S_FIELD_CAT_UTILITY — category: UTILITY","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_CAT_AUTHENTICATION — category: AUTHENTICATION","status":"pass","duration":43},{"title":"TC_TF_S2S_FIELD_018 — category: invalid enum \"FOO\"","status":"pass","duration":39},{"title":"TC_TF_S2S_FIELD_019 — start_date only (valid ISO)","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_020 — end_date only (valid ISO)","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_021 — start_date + end_date: valid range","status":"pass","duration":48},{"title":"TC_TF_S2S_FIELD_022 — start_date > end_date: reversed range","status":"pass","duration":50},{"title":"TC_TF_S2S_FIELD_023 — start_date: malformed \"notadate\"","status":"pass","duration":41},{"title":"TC_TF_S2S_FIELD_024 — start_date = end_date: same day","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_025 — far future: 2030","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_026 — far past: 2000","status":"pass","duration":48},{"title":"TC_TF_S2S_FIELD_027 — end_date: 24:00:00 edge (as in dev curl)","status":"pass","duration":35},{"title":"TC_TF_S2S_FIELD_028 — date: YYYY-MM-DD format (PRD format)","status":"pass","duration":49},{"title":"TC_TF_S2S_FIELD_029 — date: missing timezone offset","status":"pass","duration":48},{"title":"TC_TF_S2S_FIELD_SB_created_at — sort_by: created_at","status":"pass","duration":52},{"title":"TC_TF_S2S_FIELD_SB_updated_at — sort_by: updated_at","status":"pass","duration":50},{"title":"TC_TF_S2S_FIELD_SB_name — sort_by: name","status":"pass","duration":50},{"title":"TC_TF_S2S_FIELD_030 — sort_by: invalid \"foo\"","status":"pass","duration":39},{"title":"TC_TF_S2S_FIELD_031 — sort_by: case variant \"CREATED_AT\"","status":"pass","duration":36},{"title":"TC_TF_S2S_FIELD_032 — sort_by=created_at, sort_order=asc","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_033 — sort_by=created_at, sort_order=desc","status":"pass","duration":50},{"title":"TC_TF_S2S_FIELD_034 — sort_by=created_at, sort_order=\"foo\" (invalid)","status":"pass","duration":33},{"title":"TC_TF_S2S_FIELD_035 — sort_by=created_at, sort_order=\"ASC\" (uppercase)","status":"pass","duration":49},{"title":"TC_TF_S2S_FIELD_036 — page=0","status":"pass","duration":47},{"title":"TC_TF_S2S_FIELD_037 — page=1","status":"pass","duration":48},{"title":"TC_TF_S2S_FIELD_038 — page=-1","status":"pass","duration":44},{"title":"TC_TF_S2S_FIELD_039 — limit=0","status":"pass","duration":39},{"title":"TC_TF_S2S_FIELD_040 — limit=1","status":"pass","duration":55},{"title":"TC_TF_S2S_FIELD_041 — limit=100","status":"pass","duration":56},{"title":"TC_TF_S2S_FIELD_042 — limit=101","status":"pass","duration":37},{"title":"TC_TF_S2S_FIELD_043 — limit=9999","status":"pass","duration":42},{"title":"TC_TF_S2S_FIELD_044 — limit=-1","status":"pass","duration":33}]},{"label":"TC_TF_S2S_PAIR — Pairwise","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_PAIR_001 — waba_id + status","status":"pass","duration":52},{"title":"TC_TF_S2S_PAIR_002 — waba_id + category","status":"pass","duration":50},{"title":"TC_TF_S2S_PAIR_003 — status + category","status":"pass","duration":51},{"title":"TC_TF_S2S_PAIR_004 — waba_id + date range","status":"pass","duration":61},{"title":"TC_TF_S2S_PAIR_005 — template_name + status","status":"pass","duration":51},{"title":"TC_TF_S2S_PAIR_006 — category + date range","status":"pass","duration":54},{"title":"TC_TF_S2S_PAIR_007 — sort_by=created_at + sort_order=asc","status":"pass","duration":50},{"title":"TC_TF_S2S_PAIR_008 — sort_by=updated_at + sort_order=desc","status":"pass","duration":45},{"title":"TC_TF_S2S_PAIR_009 — sort_by=name + sort_order=asc","status":"pass","duration":45},{"title":"TC_TF_S2S_PAIR_010 — template_name + waba_id","status":"pass","duration":52},{"title":"TC_TF_S2S_PAIR_011 — status + date range","status":"pass","duration":46},{"title":"TC_TF_S2S_PAIR_012 — waba_id + template_name","status":"pass","duration":54},{"title":"TC_TF_S2S_PAIR_013 — category + sort_by + sort_order","status":"pass","duration":50},{"title":"TC_TF_S2S_PAIR_014 — status=PENDING + category=UTILITY","status":"pass","duration":39},{"title":"TC_TF_S2S_PAIR_015 — date range + sort_by=created_at + sort_order=desc","status":"pass","duration":48}]},{"label":"TC_TF_S2S_TRIPLE — Triple Combinations","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_TRIPLE_001 — waba_id + status + category (PRD AND-logic example)","status":"pass","duration":48},{"title":"TC_TF_S2S_TRIPLE_002 — template_name + waba_id + status","status":"pass","duration":43},{"title":"TC_TF_S2S_TRIPLE_003 — start_date + end_date + category","status":"pass","duration":48},{"title":"TC_TF_S2S_TRIPLE_004 — waba_id + date range + sort_by + sort_order","status":"pass","duration":45},{"title":"TC_TF_S2S_TRIPLE_005 — status + category + sort_by + sort_order","status":"pass","duration":42}]},{"label":"TC_TF_S2S_OVERRIDE — template_id Override Priority","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_OVERRIDE_001 — template_id + template_name","status":"pass","duration":46},{"title":"TC_TF_S2S_OVERRIDE_002 — template_id + waba_id","status":"pass","duration":37},{"title":"TC_TF_S2S_OVERRIDE_003 — template_id + status=REJECTED (conflict)","status":"pass","duration":42},{"title":"TC_TF_S2S_OVERRIDE_004 — template_id + category=AUTHENTICATION (conflict)","status":"pass","duration":47},{"title":"TC_TF_S2S_OVERRIDE_005 — template_id + start_date/end_date (conflict)","status":"pass","duration":42},{"title":"TC_TF_S2S_OVERRIDE_006 — template_id + sort_by","status":"pass","duration":60},{"title":"TC_TF_S2S_OVERRIDE_007 — template_id + sort_order","status":"pass","duration":58},{"title":"TC_TF_S2S_OVERRIDE_008 — template_id + all other filters","status":"pass","duration":68}]},{"label":"TC_TF_S2S_FULL — Full Filter Combination","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_FULL_001 — all 9 fields together","status":"pass","duration":53}]},{"label":"TC_TF_S2S_BRAND — Cross-Brand Leak","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_BRAND_001 — Pelocal brand: baseline fetch all","status":"pass","duration":51},{"title":"TC_TF_S2S_BRAND_002 — QA brand: baseline fetch all","status":"pass","duration":86},{"title":"TC_TF_S2S_BRAND_003 — Pelocal token + QA waba_id (enumeration-leak check)","status":"pass","duration":41},{"title":"TC_TF_S2S_BRAND_004 — Pelocal token + QA template_id (enumeration-leak check)","status":"pass","duration":52},{"title":"TC_TF_S2S_BRAND_005 — QA token + Pelocal waba_id (enumeration-leak check)","status":"pass","duration":42},{"title":"TC_TF_S2S_BRAND_006 — QA token + Pelocal template_id (enumeration-leak check)","status":"pass","duration":53},{"title":"TC_TF_S2S_BRAND_007 — Pelocal token + status=DELETED: verify no QA leak","status":"pass","duration":46},{"title":"TC_TF_S2S_BRAND_008 — QA token + status=DELETED: verify no Pelocal leak","status":"pass","duration":44}]},{"label":"TC_TF_S2S_SCHEMA — Response Schema","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_SCHEMA_001 — category field name (final_category vs category)","status":"pass","duration":57},{"title":"TC_TF_S2S_SCHEMA_002 — pagination object shape (PRD vs actual)","status":"pass","duration":65}]},{"label":"TC_TF_S2S_SEC — Security","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_SEC_SQL_01a — SQL injection in template_name","status":"pass","duration":48},{"title":"TC_TF_S2S_SEC_SQL_01b — SQL injection in waba_id","status":"pass","duration":45},{"title":"TC_TF_S2S_SEC_SQL_02a — SQL injection in template_name","status":"pass","duration":46},{"title":"TC_TF_S2S_SEC_SQL_02b — SQL injection in waba_id","status":"pass","duration":44},{"title":"TC_TF_S2S_SEC_SQL_03a — SQL injection in template_name","status":"pass","duration":50},{"title":"TC_TF_S2S_SEC_SQL_03b — SQL injection in waba_id","status":"pass","duration":38},{"title":"TC_TF_S2S_SEC_SQL_04a — SQL injection in template_name","status":"pass","duration":45},{"title":"TC_TF_S2S_SEC_SQL_04b — SQL injection in waba_id","status":"pass","duration":42},{"title":"TC_TF_S2S_SEC_SQL_05a — SQL injection in template_name","status":"pass","duration":44},{"title":"TC_TF_S2S_SEC_SQL_05b — SQL injection in waba_id","status":"pass","duration":45},{"title":"TC_TF_S2S_SEC_NOSQL_001 — NoSQL $ne in status","status":"pass","duration":42},{"title":"TC_TF_S2S_SEC_NOSQL_002 — NoSQL $gt in status","status":"pass","duration":36},{"title":"TC_TF_S2S_SEC_NOSQL_003 — NoSQL $where in waba_id","status":"pass","duration":42},{"title":"TC_TF_S2S_SEC_NOSQL_004 — NoSQL $ne in category","status":"pass","duration":41},{"title":"TC_TF_S2S_SEC_SORTBY_01 — sort_by injection: created_at; DROP TABLE templates","status":"pass","duration":42},{"title":"TC_TF_S2S_SEC_SORTBY_02 — sort_by injection: created_at,(SELECT password FROM users)","status":"pass","duration":42},{"title":"TC_TF_S2S_SEC_SORTBY_03 — sort_by injection: client_secret","status":"pass","duration":33},{"title":"TC_TF_S2S_SEC_SORTBY_04 — sort_by injection: internal_notes","status":"pass","duration":37},{"title":"TC_TF_S2S_SEC_XSS_01 — XSS in template_name","status":"pass","duration":52},{"title":"TC_TF_S2S_SEC_XSS_02 — XSS in template_name","status":"pass","duration":45},{"title":"TC_TF_S2S_SEC_XSS_03 — XSS in template_name","status":"pass","duration":50},{"title":"TC_TF_S2S_SEC_TYPE_001 — status: object {\"$ne\":\"REJECTED\"}","status":"pass","duration":38},{"title":"TC_TF_S2S_SEC_TYPE_002 — template_id: integer (not string)","status":"pass","duration":50},{"title":"TC_TF_S2S_SEC_TYPE_003 — page/limit as string \"abc\"","status":"pass","duration":41},{"title":"TC_TF_S2S_SEC_TYPE_004 — mass-assignment: unexpected field \"portfolio_id\":999","status":"pass","duration":36},{"title":"TC_TF_S2S_SEC_TYPE_005 — status as array [\"APPROVED\",\"REJECTED\"]","status":"pass","duration":41},{"title":"TC_TF_S2S_SEC_OVERSIZE_001 — template_name: 10,000 char string","status":"pass","duration":46},{"title":"TC_TF_S2S_SEC_NULL_001 — template_name: null byte injection","status":"pass","duration":60},{"title":"TC_TF_S2S_SEC_JWT_001 — JWT tampering: modified claim + invalid signature","status":"pass","duration":38},{"title":"TC_TF_S2S_SEC_JWT_002 — JWT alg:none attack","status":"pass","duration":39},{"title":"TC_TF_S2S_SEC_JWT_003 — Expired token replay","status":"pass","duration":42},{"title":"TC_TF_S2S_SEC_CRLF_001 — CRLF injection in clientId header","status":"pass","duration":11}]},{"label":"TC_TF_S2S_AUTH — Auth Negatives","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_AUTH_001 — no headers at all","status":"pass","duration":36},{"title":"TC_TF_S2S_AUTH_002 — invalid credentials at generateToken step","status":"pass","duration":37},{"title":"TC_TF_S2S_AUTH_003 — valid token + missing clientId header on filter call","status":"pass","duration":47},{"title":"TC_TF_S2S_AUTH_004 — valid token + wrong clientId header","status":"pass","duration":40},{"title":"TC_TF_S2S_AUTH_005 — fabricated Bearer token (not from generateToken)","status":"pass","duration":41}]},{"label":"TC_TF_S2S_DISC — PRD vs Dev Discrepancies","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_DISC_001 — PRD auth: Client-Id/Client-Secret headers directly (no generateToken)","status":"pass","duration":32},{"title":"TC_TF_S2S_DISC_002 — page numbering: page=0 vs page=1 (which is the real first page?)","status":"pass","duration":88}]},{"label":"TC_TF_S2S_DATE — Date Validation Extra","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_DATE_001 — invalid calendar date: Feb 30","status":"pass","duration":39},{"title":"TC_TF_S2S_DATE_002 — invalid month: 13","status":"pass","duration":36},{"title":"TC_TF_S2S_DATE_003 — invalid month: 00","status":"pass","duration":39},{"title":"TC_TF_S2S_DATE_004 — invalid day for April (31st in a 30-day month)","status":"pass","duration":36},{"title":"TC_TF_S2S_DATE_005 — non-leap-year Feb 29 (2026 is NOT a leap year — should be invalid)","status":"pass","duration":34},{"title":"TC_TF_S2S_DATE_006 — leap-year Feb 29 (2024 IS a leap year — should be valid, for comparison)","status":"pass","duration":52},{"title":"TC_TF_S2S_DATE_007 — exact same millisecond instant for start_date and end_date","status":"pass","duration":43},{"title":"TC_TF_S2S_DATE_008 — off-by-one: end_date exactly 1 second before start_date","status":"pass","duration":37},{"title":"TC_TF_S2S_DATE_009a — timezone offset: +05:30 (IST midnight) — UTC equivalent 18:30 prev day","status":"pass","duration":47},{"title":"TC_TF_S2S_DATE_009b — timezone offset: +00:00 (UTC midnight) same wall-clock, different UTC instant","status":"pass","duration":43},{"title":"TC_TF_S2S_DATE_010 — wrong format: DD-MM-YYYY (\"13-07-2026\")","status":"pass","duration":36},{"title":"TC_TF_S2S_DATE_011 — wrong format: slashes (\"07/13/2026\")","status":"pass","duration":40},{"title":"TC_TF_S2S_DATE_012 — Unix timestamp as number instead of string","status":"pass","duration":36}]},{"label":"TC_TF_S2S_BOUND — Boundary Correctness","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_BOUND_001 — start_date = created_at − 1s → expect INCLUDED","status":"pass","duration":49},{"title":"TC_TF_S2S_BOUND_002 — start_date = created_at exactly → expect INCLUDED (PRD: inclusive)","status":"pass","duration":46},{"title":"TC_TF_S2S_BOUND_003 — start_date = created_at + 1s → expect EXCLUDED","status":"pass","duration":47},{"title":"TC_TF_S2S_BOUND_004 — end_date = created_at + 1s → expect INCLUDED","status":"pass","duration":49},{"title":"TC_TF_S2S_BOUND_005 — end_date = created_at exactly → expect INCLUDED (PRD: inclusive)","status":"pass","duration":48},{"title":"TC_TF_S2S_BOUND_006 — end_date = created_at − 1s → expect EXCLUDED","status":"pass","duration":41},{"title":"TC_TF_S2S_BOUND_007 — narrow window [created_at − 1s, created_at + 1s] → expect INCLUDED","status":"pass","duration":51}]},{"label":"TC_TF_S2S_MISC — Miscellaneous Behavior Checks","file":"api/s2s/template-filter-api.spec.ts","tests":[{"title":"TC_TF_S2S_MISC_001 — Page overflow: page=999 well beyond total_pages","status":"pass","duration":45},{"title":"TC_TF_S2S_MISC_002 — Sort stability: same request × 3, compare template_id order","status":"pass","duration":141},{"title":"TC_TF_S2S_MISC_003 — preview_link token stability: two calls for same template_id","status":"pass","duration":102}]}]}]};
+
+let gFilter = 'all';
+let gSearch = '';
+const sFilter = {};
+
+function makeRow(t) {
+  const m = t.title.match(/^(TC[\w\-._]+)\s*[-\u2013]\s*(.+)$/);
+  const id   = m ? `<span class="tc-id">${m[1]}</span>` : '';
+  const name = m ? m[2] : t.title;
+  const dur  = t.status==='skip' ? '\u2014' : `${t.duration.toLocaleString()}ms`;
+  const bl   = t.status==='pass'?'&#10003; Pass':t.status==='skip'?'&#9675; Skip':'&#10007; Fail';
+  const skipNote = (t.status==='skip' && t.skipNote) ? `<span class="skip-note">${t.skipNote}</span>` : '';
+  return `<div class="trow" data-s="${t.status}" data-q="${t.title.toLowerCase()}">
+    <div class="tdot ${t.status[0]}"></div>
+    <div class="tname">${id}${name}${skipNote}</div>
+    <div class="t-badge ${t.status[0]}">${bl}</div>
+    <div class="tdur">${dur}</div>
+  </div>`;
+}
+
+function makeSfBar(mi, sid, tests) {
+  const sp = tests.filter(t=>t.status==='pass').length;
+  const ss = tests.filter(t=>t.status==='skip').length;
+  const sf = tests.filter(t=>t.status==='fail').length;
+  return `<div class="sf-bar" id="sfbar-${mi}-${sid}">
+    <button class="sf-btn on-all" onclick="setSuiteFilter(${mi},'${sid}','all',this)">All ${tests.length}</button>
+    <button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','pass',this)">&#10003; Pass ${sp}</button>
+    ${ss>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','skip',this)">&#9675; Skip ${ss}</button>`:''}
+    ${sf>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','fail',this)">&#10007; Fail ${sf}</button>`:''}
+    <span class="sf-count" id="sc-${mi}-${sid}">${tests.length} tests</span>
+  </div>`;
+}
+
+function build() {
+  const col = document.getElementById('mod-col');
+  col.innerHTML = '';
+  R.modules.forEach((mod, mi) => {
+    sFilter[mi] = {};
+    const allTests = mod.suites.flatMap(s => s.tests);
+    const modPass  = allTests.filter(t=>t.status==='pass').length;
+    const modSkip  = allTests.filter(t=>t.status==='skip').length;
+    const modTotal = allTests.length;
+    sFilter[mi]['all'] = 'all';
+    mod.suites.forEach((s, si) => sFilter[mi][si] = 'all');
+
+    const allBadge = `<span class="tbg tbg-p">&#10003;${modPass}</span>${modSkip>0?` <span class="tbg tbg-s">&#9675;${modSkip}</span>`:''}`;
+    let tabsHtml = `<div class="stab active" id="tab-${mi}-all" onclick="switchTab(${mi},'all')">All ${allBadge}</div>`;
+    tabsHtml += mod.suites.map((s, si) => {
+      const sp = s.tests.filter(t=>t.status==='pass').length;
+      const ss = s.tests.filter(t=>t.status==='skip').length;
+      let badges = `<span class="tbg tbg-p">&#10003;${sp}</span>`;
+      if (ss > 0) badges += ` <span class="tbg tbg-s">&#9675;${ss}</span>`;
+      return `<div class="stab" id="tab-${mi}-${si}" onclick="switchTab(${mi},${si})">${s.label} ${badges}</div>`;
+    }).join('');
+
+    let panelsHtml = `<div class="suite-panel active" id="sp-${mi}-all">
+      ${makeSfBar(mi,'all',allTests)}
+      <div class="test-list" id="tl-${mi}-all">${allTests.map(makeRow).join('')}</div>
+      <div class="no-match" id="nm-${mi}-all">No tests match the current filter.</div>
+    </div>`;
+    panelsHtml += mod.suites.map((s, si) => {
+      return `<div class="suite-panel" id="sp-${mi}-${si}">
+        ${makeSfBar(mi,si,s.tests)}
+        <div class="test-list" id="tl-${mi}-${si}">${s.tests.map(makeRow).join('')}</div>
+        <div class="no-match" id="nm-${mi}-${si}">No tests match the current filter.</div>
+      </div>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'mod-card';
+    card.id = `mc-${mi}`;
+    card.innerHTML = `
+      <div class="mod-hdr" onclick="toggleMod(${mi})">
+        <div class="mod-hdr-left">
+          <span class="mod-icon">${mod.icon}</span>
+          <div>
+            <div class="mod-title">${mod.name}</div>
+            <div class="mod-desc">${mod.desc}</div>
+          </div>
+        </div>
+        <div class="mod-kpis">
+          <div class="mk mk-t"><div class="mk-num">${modTotal}</div><div class="mk-lbl">Total</div></div>
+          <div class="mk mk-p"><div class="mk-num">${modPass}</div><div class="mk-lbl">Pass</div></div>
+          <div class="mk mk-s"><div class="mk-num">${modSkip}</div><div class="mk-lbl">Skip</div></div>
+        </div>
+        <span class="mod-chevron open" id="chev-${mi}">&#9654;</span>
+      </div>
+      <div class="mod-body" id="mb-${mi}">
+        <div class="suite-tabs" id="stabs-${mi}">${tabsHtml}</div>
+        <div id="spnls-${mi}">${panelsHtml}</div>
+      </div>`;
+    col.appendChild(card);
+  });
+}
+
+function toggleMod(mi) {
+  const body = document.getElementById(`mb-${mi}`);
+  const chev = document.getElementById(`chev-${mi}`);
+  const open = !body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', open);
+  chev.classList.toggle('open', !open);
+}
+
+let allCollapsed = false;
+function toggleAll() {
+  allCollapsed = !allCollapsed;
+  R.modules.forEach((_, mi) => {
+    const body = document.getElementById(`mb-${mi}`);
+    const chev = document.getElementById(`chev-${mi}`);
+    body.classList.toggle('collapsed', allCollapsed);
+    chev.classList.toggle('open', !allCollapsed);
+  });
+  document.querySelector('.btn-sm').textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
+
+function switchTab(mi, si) {
+  document.querySelectorAll(`#stabs-${mi} .stab`).forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll(`#spnls-${mi} .suite-panel`).forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${mi}-${si}`).classList.add('active');
+  document.getElementById(`sp-${mi}-${si}`).classList.add('active');
+  applyToSuite(mi, si);
+}
+
+function setSuiteFilter(mi, si, status, btn) {
+  sFilter[mi][si] = status;
+  const bar = document.getElementById(`sfbar-${mi}-${si}`);
+  bar.querySelectorAll('.sf-btn').forEach(b => { b.className = 'sf-btn'; });
+  btn.className = `sf-btn on-${status}`;
+  applyToSuite(mi, si);
+}
+
+function applyToSuite(mi, si) {
+  const sf = sFilter[mi][si] || 'all';
+  const rows = document.querySelectorAll(`#tl-${mi}-${si} .trow`);
+  let vis = 0;
+  rows.forEach(row => {
+    const rs = row.dataset.s;
+    const rq = row.dataset.q;
+    const sfOk = sf === 'all' || rs === sf;
+    const gfOk = gFilter === 'all' || rs === gFilter;
+    const sqOk = !gSearch || rq.includes(gSearch);
+    const show = sfOk && gfOk && sqOk;
+    row.classList.toggle('row-hidden', !show);
+    if (show) vis++;
+  });
+  const sc = document.getElementById(`sc-${mi}-${si}`);
+  if (sc) sc.textContent = `${vis} test${vis!==1?'s':''}`;
+  const nm = document.getElementById(`nm-${mi}-${si}`);
+  if (nm) nm.style.display = vis === 0 ? 'block' : 'none';
+}
+
+function applyAll() {
+  R.modules.forEach((mod, mi) => {
+    let modHasVisible = false;
+    const sids = ['all', ...mod.suites.map((_,si) => si)];
+    sids.forEach(sid => {
+      applyToSuite(mi, sid);
+      const rows = document.querySelectorAll(`#tl-${mi}-${sid} .trow:not(.row-hidden)`);
+      if (rows.length > 0) modHasVisible = true;
+    });
+    const card = document.getElementById(`mc-${mi}`);
+    if (gFilter === 'all' && !gSearch) {
+      card.classList.remove('card-hidden');
+    } else {
+      card.classList.toggle('card-hidden', !modHasVisible);
+    }
+  });
+}
+
+function globalFilter(status, btn) {
+  gFilter = status;
+  document.querySelectorAll('.fpill').forEach(p => { p.className = 'fpill'; });
+  btn.className = `fpill on-${status}`;
+  if (status !== 'all') {
+    R.modules.forEach((_, mi) => {
+      const body = document.getElementById(`mb-${mi}`);
+      const chev = document.getElementById(`chev-${mi}`);
+      body.classList.remove('collapsed');
+      chev.classList.add('open');
+    });
+    allCollapsed = false;
+    document.querySelector('.btn-sm').textContent = 'Collapse All';
+  }
+  applyAll();
+}
+
+function onSearch(val) {
+  gSearch = val.trim().toLowerCase();
+  if (gSearch) {
+    R.modules.forEach((_, mi) => {
+      document.getElementById(`mb-${mi}`).classList.remove('collapsed');
+      document.getElementById(`chev-${mi}`).classList.add('open');
+    });
+    allCollapsed = false;
+  }
+  applyAll();
+}
+
+build();
+
+function fixSidebarTop() {
+  const toolbar = document.querySelector('.toolbar');
+  const sidebar = document.querySelector('.sidebar');
+  if (toolbar && sidebar) {
+    const h = toolbar.getBoundingClientRect().height;
+    sidebar.style.top = (h + 8) + 'px';
+    sidebar.style.maxHeight = 'calc(100vh - ' + (h + 16) + 'px)';
+  }
+}
+fixSidebarTop();
+window.addEventListener('resize', fixSidebarTop);
+</script>
+</body>
+</html>
