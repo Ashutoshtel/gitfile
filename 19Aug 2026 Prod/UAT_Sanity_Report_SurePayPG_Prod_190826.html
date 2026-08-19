@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QA Sanity Report — PeConnect CPaaS · Production · SurePay PG Fix + Redis Enhancement</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0d1117; --ink-2:#24292f; --ink-3:#57606a;
+  --surface:#f6f8fa; --surface-2:#ffffff;
+  --border:#d0d7de; --border-light:#eaeef2;
+  --pass:#1a7f37; --pass-bg:#dafbe1; --pass-accent:#2da44e;
+  --skip:#7d4e00; --skip-bg:#fff8c5; --skip-accent:#bf8700;
+  --fail:#cf222e; --fail-bg:#ffebe9; --fail-accent:#cf222e;
+  --accent:#0969da; --accent-bg:#ddf4ff;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(27,31,36,.12),0 8px 24px rgba(66,74,83,.06);
+  --shadow-sm:0 1px 2px rgba(27,31,36,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--ink);line-height:1.5;font-size:14px;}
+
+/* ── HERO ─────────────────────────────────────────────────── */
+.hero{background:var(--ink);padding:48px 0 0;width:100%;overflow:hidden;}
+.hero-inner{max-width:1200px;margin:0 auto;padding:0 40px;position:relative;}
+.hero-inner::before{content:'';position:fixed;top:0;left:0;right:0;height:260px;background:repeating-linear-gradient(-45deg,transparent,transparent 24px,rgba(255,255,255,.018) 24px,rgba(255,255,255,.018) 25px);pointer-events:none;z-index:0;}
+.hero-meta{display:flex;gap:0;flex-wrap:wrap;padding:0;border-top:1px solid rgba(255,255,255,.08);position:relative;z-index:1;}
+.meta-item{padding:14px 28px 14px 0;}
+.meta-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace;margin-bottom:3px;}
+.meta-value{font-size:13.5px;color:rgba(255,255,255,.9);font-weight:500;white-space:nowrap;}
+.meta-value.all-pass{color:#3fb950;font-weight:700;}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:4px 14px;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.65);font-family:'DM Mono',monospace;margin-bottom:16px;position:relative;z-index:1;}
+.hero-tag::before{content:'●';color:#3fb950;font-size:8px;}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(28px,3.8vw,50px);line-height:1.12;color:#fff;margin-bottom:10px;position:relative;z-index:1;}
+.hero-title em{font-style:italic;color:rgba(255,255,255,.42);}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.46);margin-bottom:28px;font-weight:300;max-width:580px;position:relative;z-index:1;}
+
+/* ── KPI STRIP ────────────────────────────────────────────── */
+.kpi-strip{background:#fff;border-bottom:1px solid var(--border);}
+.kpi-grid{max-width:1200px;margin:0 auto;padding:0 40px;display:grid;grid-template-columns:repeat(5,1fr);}
+.kpi-cell{padding:24px 20px;text-align:center;position:relative;}
+.kpi-cell+.kpi-cell::before{content:'';position:absolute;left:0;top:14%;height:72%;width:1px;background:var(--border-light);}
+.kpi-num{font-family:'DM Serif Display',serif;font-size:40px;line-height:1;margin-bottom:4px;}
+.kpi-num.t{color:var(--ink)}.kpi-num.p{color:var(--pass)}.kpi-num.s{color:var(--skip)}.kpi-num.f{color:var(--fail)}.kpi-num.r{color:var(--accent)}
+.kpi-lbl{font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.07em;font-weight:500;}
+.kpi-line{height:3px;width:44px;border-radius:2px;margin:8px auto 0;}
+.kpi-line.t{background:var(--ink-2)}.kpi-line.p{background:var(--pass-accent)}.kpi-line.s{background:var(--skip-accent)}.kpi-line.f{background:var(--fail-accent)}.kpi-line.r{background:var(--accent)}
+
+/* ── TOOLBAR ─────────────────────────────────────────────── */
+.toolbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 0;position:sticky;top:0;z-index:200;box-shadow:var(--shadow-sm);}
+.toolbar-inner{max-width:1200px;margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.toolbar-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-family:'DM Mono',monospace;flex-shrink:0;}
+.filter-group{display:flex;gap:5px;flex-wrap:wrap;}
+.fpill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--ink-3);font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.fpill:hover{border-color:var(--ink-3);}
+.fpill.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.fpill.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.fpill.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.fpill.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.fdot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.fdot.p{background:var(--pass-accent)}.fdot.s{background:var(--skip-accent)}.fdot.f{background:var(--fail-accent)}
+.search-box{position:relative;flex:1;min-width:180px;max-width:300px;}
+.search-box svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none;}
+#q{width:100%;padding:6px 10px 6px 30px;border:1.5px solid var(--border);border-radius:8px;font-size:12.5px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;transition:border-color .15s;}
+#q:focus{border-color:var(--accent);}
+.btn-sm{padding:5px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:11.5px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--ink-3);transition:all .15s;font-weight:500;white-space:nowrap;}
+.btn-sm:hover{background:var(--surface);border-color:var(--ink-3);}
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.layout{max-width:1200px;margin:0 auto;padding:28px 40px 80px;display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start;}
+
+/* ── MODULE CARD ─────────────────────────────────────────── */
+.mod-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.mod-card.card-hidden{display:none;}
+
+/* Module header */
+.mod-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 22px;background:var(--surface);border-bottom:1px solid var(--border-light);cursor:pointer;user-select:none;}
+.mod-hdr:hover{background:#edf0f3;}
+.mod-hdr-left{display:flex;align-items:flex-start;gap:11px;flex:1;}
+.mod-icon{font-size:20px;line-height:1;padding-top:2px;flex-shrink:0;}
+.mod-title{font-weight:700;font-size:14.5px;color:var(--ink);margin-bottom:2px;}
+.mod-desc{font-size:11.5px;color:var(--ink-3);line-height:1.5;max-width:480px;}
+.mod-kpis{display:flex;border:1px solid var(--border-light);border-radius:8px;overflow:hidden;flex-shrink:0;margin-top:2px;}
+.mk{padding:7px 13px;text-align:center;border-right:1px solid var(--border-light);}
+.mk:last-child{border-right:none;}
+.mk-t{background:var(--surface);} .mk-p{background:var(--pass-bg);} .mk-s{background:var(--skip-bg);}
+.mk-num{font-family:'DM Serif Display',serif;font-size:19px;line-height:1;}
+.mk-t .mk-num{color:var(--ink);} .mk-p .mk-num{color:var(--pass);} .mk-s .mk-num{color:var(--skip);}
+.mk-lbl{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3);margin-top:1px;}
+.mk-p .mk-lbl{color:var(--pass);} .mk-s .mk-lbl{color:var(--skip);}
+.mod-chevron{font-size:12px;color:var(--ink-3);flex-shrink:0;margin-top:4px;transition:transform .2s;}
+.mod-chevron.open{transform:rotate(90deg);}
+
+/* Module body (collapsible) */
+.mod-body{display:block;}
+.mod-body.collapsed{display:none;}
+
+/* ── SUITE TABS ──────────────────────────────────────────── */
+.suite-tabs{display:flex;gap:0;overflow-x:auto;padding:0 22px;background:#fff;border-bottom:1px solid var(--border-light);scrollbar-width:thin;}
+.suite-tabs::-webkit-scrollbar{height:3px;}
+.suite-tabs::-webkit-scrollbar-thumb{background:var(--border);}
+.stab{display:flex;align-items:center;gap:6px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--ink-3);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;transition:all .15s;user-select:none;flex-shrink:0;}
+.stab:hover{color:var(--ink);}
+.stab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
+/* Tab badges */
+.tbg{font-size:10px;padding:1px 6px;border-radius:10px;font-family:'DM Mono',monospace;font-weight:600;line-height:1.4;}
+.tbg-p{background:var(--pass-bg);color:var(--pass);}
+.tbg-s{background:var(--skip-bg);color:var(--skip);}
+
+/* ── SUITE PANEL ─────────────────────────────────────────── */
+.suite-panel{display:none;}
+.suite-panel.active{display:block;}
+
+/* Status filter bar inside suite */
+.sf-bar{display:flex;align-items:center;gap:6px;padding:9px 22px;border-bottom:1px solid var(--border-light);background:var(--surface);flex-wrap:wrap;}
+.sf-btn{padding:3px 11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Mono',monospace;transition:all .12s;color:var(--ink-3);}
+.sf-btn.on-all{border-color:var(--ink);background:var(--ink);color:#fff;}
+.sf-btn.on-pass{border-color:var(--pass-accent);background:var(--pass-bg);color:var(--pass);}
+.sf-btn.on-skip{border-color:var(--skip-accent);background:var(--skip-bg);color:var(--skip);}
+.sf-btn.on-fail{border-color:var(--fail-accent);background:var(--fail-bg);color:var(--fail);}
+.sf-count{font-size:11px;color:var(--ink-3);margin-left:auto;font-family:'DM Mono',monospace;}
+
+/* Test rows */
+.test-list{}
+.trow{display:flex;align-items:center;gap:10px;padding:7px 22px;border-bottom:1px solid var(--border-light);transition:background .1s;}
+.trow:last-child{border-bottom:none;}
+.trow:hover{background:#f8fafc;}
+.trow.row-hidden{display:none;}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tdot.p{background:var(--pass-accent);} .tdot.s{background:var(--skip-accent);} .tdot.f{background:var(--fail-accent);}
+.tname{flex:1;font-size:12.5px;color:var(--ink-2);line-height:1.4;}
+.tc-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);margin-right:4px;}
+.t-badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;flex-shrink:0;}
+.t-badge.p{background:var(--pass-bg);color:var(--pass);}
+.t-badge.s{background:var(--skip-bg);color:var(--skip);}
+.t-badge.f{background:var(--fail-bg);color:var(--fail);}
+.tdur{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3);flex-shrink:0;min-width:52px;text-align:right;}
+.no-match{padding:24px;text-align:center;color:var(--ink-3);font-size:12.5px;font-style:italic;display:none;}
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  position:sticky;
+  top:52px;
+  align-self:start;
+  max-height:calc(100vh - 64px);
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;
+}
+.scard{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm);}
+.sc-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--ink);margin-bottom:3px;}
+.sc-sub{font-size:11.5px;color:var(--ink-3);margin-bottom:14px;}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:16px;}
+.legend{display:flex;flex-direction:column;gap:8px;flex:1;}
+.leg-row{display:flex;align-items:center;gap:7px;font-size:12.5px;}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.leg-dot.p{background:var(--pass-accent);} .leg-dot.s{background:var(--skip-accent);} .leg-dot.f{background:var(--fail-accent);}
+.leg-lbl{flex:1;color:var(--ink-3);}
+.leg-cnt{font-weight:700;font-family:'DM Mono',monospace;}
+
+/* Summary */
+.zero-box{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--pass-bg);border-radius:8px;border:1px solid #a7f3c0;margin-bottom:13px;}
+.sum-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-light);font-size:12.5px;}
+.sum-row:last-child{border-bottom:none;}
+.sum-k{color:var(--ink-3);}
+.sum-v{font-weight:700;font-family:'DM Mono',monospace;}
+
+/* Env */
+.env-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:var(--pass-bg);color:var(--pass);border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.env-row{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border-light);}
+.env-row:last-child{border-bottom:none;}
+.env-k{color:var(--ink-3);}
+.env-v{font-weight:500;font-family:'DM Mono',monospace;font-size:11.5px;text-align:right;}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">PeConnect CPaaS &middot; QA Sanity &middot; Production &middot; SurePay PG Fix + Redis Enhancement</div>
+    <h1 class="hero-title">Post-Deployment <em>Sanity Report</em></h1>
+    <p class="hero-sub">Production sanity validated after the SurePay PG webhook fixes and Redis key enhancement rollout.</p>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="meta-label">Executed</div><div class="meta-value">19 Aug 2026</div></div>
+      <div class="meta-item"><div class="meta-label">Environment</div><div class="meta-value">Production</div></div>
+      <div class="meta-item"><div class="meta-label">Project</div><div class="meta-value">CPaaS &mdash; PeConnect</div></div>
+      <div class="meta-item"><div class="meta-label">Deployment</div><div class="meta-value">SurePay PG Fix + Redis Enhancement</div></div>
+      <div class="meta-item"><div class="meta-label">Browser</div><div class="meta-value">Chromium</div></div>
+      <div class="meta-item"><div class="meta-label">Duration</div><div class="meta-value">4.7 min</div></div>
+      <div class="meta-item"><div class="meta-label">Tester</div><div class="meta-value">Ashutosh Kumar</div></div>
+      <div class="meta-item"><div class="meta-label">Overall Status</div><div class="meta-value all-pass">&#10003; ALL PASS</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- KPI STRIP -->
+<section class="kpi-strip">
+  <div class="kpi-grid">
+    <div class="kpi-cell"><div class="kpi-num t">39</div><div class="kpi-lbl">Total Tests</div><div class="kpi-line t"></div></div>
+    <div class="kpi-cell"><div class="kpi-num p">39</div><div class="kpi-lbl">Passed</div><div class="kpi-line p"></div></div>
+    <div class="kpi-cell"><div class="kpi-num s">0</div><div class="kpi-lbl">Skipped</div><div class="kpi-line s"></div></div>
+    <div class="kpi-cell"><div class="kpi-num f">0</div><div class="kpi-lbl">Failed</div><div class="kpi-line f"></div></div>
+    <div class="kpi-cell"><div class="kpi-num r">100%</div><div class="kpi-lbl">Pass Rate</div><div class="kpi-line r"></div></div>
+  </div>
+</section>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <span class="toolbar-label">Filter:</span>
+    <div class="filter-group">
+      <button class="fpill on-all" data-gf="all" onclick="globalFilter('all',this)">All &nbsp;<span id="cnt-all">39</span></button>
+      <button class="fpill" data-gf="pass" onclick="globalFilter('pass',this)"><span class="fdot p"></span>&nbsp;Passed &nbsp;<span id="cnt-pass">39</span></button>
+      <button class="fpill" data-gf="skip" onclick="globalFilter('skip',this)"><span class="fdot s"></span>&nbsp;Skipped &nbsp;<span id="cnt-skip">0</span></button>
+      <button class="fpill" data-gf="fail" onclick="globalFilter('fail',this)"><span class="fdot f"></span>&nbsp;Failed &nbsp;<span>0</span></button>
+    </div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M11.5 7a4.499 4.499 0 11-8.998 0A4.499 4.499 0 0111.5 7zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"/></svg>
+      <input id="q" placeholder="Search test cases..." oninput="onSearch(this.value)">
+    </div>
+    <button class="btn-sm" onclick="toggleAll()">Collapse All</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <div id="mod-col"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="scard">
+      <div class="sc-title">Result Distribution</div>
+      <p class="sc-sub">Breakdown of 39 tests</p>
+      <div class="donut-wrap">
+        <svg width="110" height="110" viewBox="0 0 150 150">
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#eaeef2" stroke-width="20"/>
+          <circle cx="75" cy="75" r="55" fill="none" stroke="#2da44e" stroke-width="20"
+            stroke-dasharray="345.6 345.6" stroke-dashoffset="0" transform="rotate(-90 75 75)"/>
+          <text x="75" y="70" text-anchor="middle" font-size="22" font-weight="700" fill="#0d1117" font-family="Georgia,serif">39</text>
+          <text x="75" y="87" text-anchor="middle" font-size="10" fill="#57606a" font-family="Arial,sans-serif">passed</text>
+        </svg>
+        <div class="legend">
+          <div class="leg-row"><div class="leg-dot p"></div><span class="leg-lbl">Passed</span><span class="leg-cnt" style="color:var(--pass)">39</span></div>
+          <div class="leg-row"><div class="leg-dot s"></div><span class="leg-lbl">Skipped</span><span class="leg-cnt" style="color:var(--skip)">0</span></div>
+          <div class="leg-row"><div class="leg-dot f"></div><span class="leg-lbl">Failed</span><span class="leg-cnt" style="color:var(--fail)">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Run Summary</div>
+      <div class="zero-box">
+        <span style="font-size:18px;">&#128737;&#65039;</span>
+        <div>
+          <div style="font-weight:700;color:var(--pass);font-size:12.5px;margin-bottom:1px;">Zero Defects Detected</div>
+          <div style="color:var(--pass);font-size:11.5px;">All executable tests passed cleanly</div>
+        </div>
+      </div>
+      <div class="sum-row"><span class="sum-k">Total tests</span><span class="sum-v">39</span></div>
+      <div class="sum-row"><span class="sum-k">Passed</span><span class="sum-v" style="color:var(--pass)">39</span></div>
+      <div class="sum-row"><span class="sum-k">Skipped</span><span class="sum-v" style="color:var(--skip)">0</span></div>
+      <div class="sum-row"><span class="sum-k">Failed</span><span class="sum-v" style="color:var(--fail)">0</span></div>
+      <div class="sum-row"><span class="sum-k">Pass rate</span><span class="sum-v" style="color:var(--accent)">100%</span></div>
+      <div class="sum-row"><span class="sum-k">Deployment</span><span class="sum-v">SurePay PG Fix + Redis</span></div>
+      <div class="sum-row"><span class="sum-k">Duration</span><span class="sum-v">4.7 min</span></div>
+      <div class="sum-row"><span class="sum-k">Tester</span><span class="sum-v">Ashutosh Kumar</span></div>
+    </div>
+
+    <div class="scard">
+      <div class="sc-title">Environment</div>
+      <div class="env-badge">&#10003; PRODUCTION</div>
+      <div class="env-row"><span class="env-k">Platform</span><span class="env-v">CPaaS — PeConnect</span></div>
+      <div class="env-row"><span class="env-k">Framework</span><span class="env-v">Playwright / TS</span></div>
+      <div class="env-row"><span class="env-k">Browser</span><span class="env-v">Chromium</span></div>
+      <div class="env-row"><span class="env-k">Suites</span><span class="env-v">UI · API · S2S</span></div>
+      <div class="env-row"><span class="env-k">Spec files</span><span class="env-v">14</span></div>
+      <div class="env-row"><span class="env-k">Deployment</span><span class="env-v">SurePay Fix + Redis</span></div>
+      <div class="env-row"><span class="env-k">Run date</span><span class="env-v">19 Aug 2026</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const R = {"stats": {"total": 39, "pass": 39, "skip": 0, "fail": 0}, "modules": [{"name": "Authentication", "icon": "🔐", "desc": "Login and session auth setup validated on Production.", "suites": [{"label": "Auth Setup", "file": "setup/auth.setup.ts", "tests": [{"title": "authenticate user", "outcome": "expected", "duration": 1671, "status": "pass"}, {"title": "authenticate executive", "outcome": "expected", "duration": 482, "status": "pass"}, {"title": "authenticate admin", "outcome": "expected", "duration": 31206, "status": "pass"}]}]}, {"name": "Template List", "icon": "📋", "desc": "Template listing UI sanity: filters, search, pagination, actions, and test-data cleanup.", "suites": [{"label": "Template List Sanity", "file": "ui/template-management/template-list.spec.ts", "tests": [{"title": "TC_TL_001 - Template list page loads with all 10 columns, valid data, correct formats @sanity", "outcome": "expected", "duration": 2794, "status": "pass"}, {"title": "TC_TL_003 - APPROVED row has view + edit + delete icons @sanity", "outcome": "expected", "duration": 2872, "status": "pass"}, {"title": "TC_TL_010 - Status dropdown has correct options and count (no DELETED, no extras) @sanity", "outcome": "expected", "duration": 3181, "status": "pass"}, {"title": "TC_TL_014 - Reset clears all filters and reloads full list @sanity", "outcome": "expected", "duration": 3706, "status": "pass"}, {"title": "TC_TL_016 - Delete icon shows confirmation dialog @sanity", "outcome": "expected", "duration": 3487, "status": "pass"}, {"title": "TC_TL_027 - Non-matching search shows empty state or zero rows @sanity", "outcome": "expected", "duration": 3434, "status": "pass"}, {"title": "TC_TL_034 - Download with Utility filter applied shows toast @sanity", "outcome": "expected", "duration": 4504, "status": "pass"}, {"title": "TC024 - Partial name search returns filtered results @sanity", "outcome": "expected", "duration": 4036, "status": "pass"}, {"title": "TC029 - Previous button is disabled on page 1 @sanity", "outcome": "expected", "duration": 2713, "status": "pass"}, {"title": "TC031 - Final Category dropdown contains Marketing and Utility @sanity", "outcome": "expected", "duration": 3039, "status": "pass"}, {"title": "TC032 - Table columns are in correct order @sanity", "outcome": "expected", "duration": 3223, "status": "pass"}, {"title": "TC033 - Search button is enabled when template name is filled @sanity", "outcome": "expected", "duration": 2788, "status": "pass"}, {"title": "TC035 - Create Template button navigates to create page @sanity", "outcome": "expected", "duration": 2973, "status": "pass"}]}, {"label": "Template Data Cleanup", "file": "ui/template-management/cleanup.spec.ts", "tests": [{"title": "TC_TL_037 - Delete the templates this run created (by name prefix)", "outcome": "expected", "duration": 33566, "status": "pass"}]}]}, {"name": "Create Template", "icon": "➕", "desc": "Create-template sanity across UI and API — core creation flow, S2S, buttons, order details.", "suites": [{"label": "Create Template API", "file": "api/create-template/create-template-api.spec.ts", "tests": [{"title": "TC_CT_A_001 - Request without Authorization header is rejected @sanity", "outcome": "expected", "duration": 81, "status": "pass"}, {"title": "TC_CT_A_006 - Minimal valid payload (body only) returns SUCCESS with PENDING status @sanity", "outcome": "expected", "duration": 3118, "status": "pass"}, {"title": "TC_CT_A_048 - OD template IMAGE header + ORDER_DETAILS button (MARKETING) returns SUCCESS @sanity", "outcome": "expected", "duration": 5591, "status": "pass"}]}, {"label": "Create Template S2S", "file": "api/s2s/create-template-s2s.spec.ts", "tests": [{"title": "TC_CT_S2S_001 - generateToken with valid credentials returns a token @sanity", "outcome": "expected", "duration": 70, "status": "pass"}, {"title": "TC_CT_S2S_003 - Create without auth token returns 401 or 403 @sanity", "outcome": "expected", "duration": 120, "status": "pass"}, {"title": "TC_CT_S2S_004 - Minimal create-template without portfolioIds returns SUCCESS @sanity", "outcome": "expected", "duration": 3975, "status": "pass"}]}, {"label": "Create & Submit", "file": "ui/template-management/create-template/create-submit.spec.ts", "tests": [{"title": "TC_CT_CS_001 - MARKETING template with TEXT header creates successfully @sanity", "outcome": "expected", "duration": 15532, "status": "pass"}, {"title": "TC_CT_CS_003 - Template with IMAGE header creates successfully @sanity", "outcome": "expected", "duration": 15730, "status": "pass"}, {"title": "TC_CT_CS_009 - Template with VIDEO header creates successfully @sanity", "outcome": "expected", "duration": 9541, "status": "pass"}, {"title": "TC_CT_CS_010 - Template with DOCUMENT header creates successfully @sanity", "outcome": "expected", "duration": 17535, "status": "pass"}]}, {"label": "Button Combinations (UI)", "file": "ui/template-management/create-template/button-combinations.spec.ts", "tests": [{"title": "TC_CT_BC_004 - Quick Reply + URL + Phone all together — full combo submits and appears in list @sanity", "outcome": "expected", "duration": 23551, "status": "pass"}]}, {"label": "Form Validation", "file": "ui/template-management/create-template/form-validation.spec.ts", "tests": [{"title": "TC_CT_FV_001 - Submit completely empty form shows all required field errors @sanity", "outcome": "expected", "duration": 6319, "status": "pass"}]}, {"label": "Order Details", "file": "ui/template-management/create-template/order-details.spec.ts", "tests": [{"title": "TC_CT_OD_002 - ORDER DETAILS template with IMAGE header and body variable submits successfully @sanity", "outcome": "expected", "duration": 18137, "status": "pass"}]}, {"label": "Request Contact Info", "file": "ui/template-management/create-template/request-contact-info.spec.ts", "tests": [{"title": "TC_CT_RCI_012 - Request Contact Info template (no vars) appears in template list after creation @sanity", "outcome": "expected", "duration": 16803, "status": "pass"}]}]}, {"name": "Bulk Messaging S2S API", "icon": "🔗", "desc": "SurePay PG bulk messaging sanity, post webhook-fix — campaign send, DELIVERY webhook checks.", "suites": [{"label": "Bulk Messaging API", "file": "api/s2s/bulk-messaging-api.spec.ts", "tests": [{"title": "TC_BULK_002 - Missing \"templateId\" is rejected @bulk @sanity", "outcome": "expected", "duration": 361, "status": "pass"}, {"title": "TC_BULK_004 - Empty \"recipients\" array is rejected @bulk @sanity", "outcome": "expected", "duration": 130, "status": "pass"}, {"title": "TC_BULK_007 - Valid campaignId is used directly and accepted @bulk @sanity", "outcome": "expected", "duration": 1969, "status": "pass"}]}, {"label": "Webhook Callback Setup", "file": "setup/webhook-callback.setup.ts", "tests": [{"title": "point WABA delivery callback at this environment", "outcome": "expected", "duration": 5277, "status": "pass"}]}]}, {"name": "Template Fetch API", "icon": "🔍", "desc": "S2S template filters endpoint sanity check.", "suites": [{"label": "Template Filter API", "file": "api/s2s/template-filter-api.spec.ts", "tests": [{"title": "TC_TF_S2S_BASE_001 — template_id: own-portfolio valid ID @sanity", "outcome": "expected", "duration": 170, "status": "pass"}, {"title": "TC_TF_S2S_BASE_002 — template_name: valid own-portfolio name @sanity", "outcome": "expected", "duration": 59, "status": "pass"}]}]}, {"name": "Traffic Dashboard API", "icon": "📊", "desc": "Executive-role Traffic Dashboard API sanity check.", "suites": [{"label": "Summary", "file": "api/executive_role/traffic_dashboard/summary.spec.ts", "tests": [{"title": "TC_TD_SM_AUTH_001 — no Authorization header → 401 @sanity", "outcome": "expected", "duration": 137, "status": "pass"}, {"title": "TC_TD_SM_DATE_004 — future date range (both > today) → 200 @sanity", "outcome": "expected", "duration": 1942, "status": "pass"}]}]}]};
+
+let gFilter = 'all';   // global status filter
+let gSearch = '';      // global search
+// per-suite local filter: sFilter[modIdx][suiteIdx] = 'all'|'pass'|'skip'|'fail'
+const sFilter = {};
+
+// ─── BUILD ────────────────────────────────────────────────────────
+function makeRow(t) {
+  const m = t.title.match(/^(TC[\w\-._]+)\s*[-\u2013]\s*(.+)$/);
+  const id   = m ? `<span class="tc-id">${m[1]}</span>` : '';
+  const name = m ? m[2] : t.title;
+  const dur  = t.status==='skip' ? '\u2014' : `${t.duration.toLocaleString()}ms`;
+  const bl   = t.status==='pass'?'&#10003; Pass':t.status==='skip'?'&#9675; Skip':'&#10007; Fail';
+  return `<div class="trow" data-s="${t.status}" data-q="${t.title.toLowerCase()}">
+    <div class="tdot ${t.status[0]}"></div>
+    <div class="tname">${id}${name}</div>
+    <div class="t-badge ${t.status[0]}">${bl}</div>
+    <div class="tdur">${dur}</div>
+  </div>`;
+}
+
+function makeSfBar(mi, sid, tests) {
+  const sp = tests.filter(t=>t.status==='pass').length;
+  const ss = tests.filter(t=>t.status==='skip').length;
+  const sf = tests.filter(t=>t.status==='fail').length;
+  return `<div class="sf-bar" id="sfbar-${mi}-${sid}">
+    <button class="sf-btn on-all" onclick="setSuiteFilter(${mi},'${sid}','all',this)">All ${tests.length}</button>
+    <button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','pass',this)">&#10003; Pass ${sp}</button>
+    ${ss>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','skip',this)">&#9675; Skip ${ss}</button>`:''}
+    ${sf>0?`<button class="sf-btn" onclick="setSuiteFilter(${mi},'${sid}','fail',this)">&#10007; Fail ${sf}</button>`:''}
+    <span class="sf-count" id="sc-${mi}-${sid}">${tests.length} tests</span>
+  </div>`;
+}
+
+function build() {
+  const col = document.getElementById('mod-col');
+  col.innerHTML = '';
+
+  R.modules.forEach((mod, mi) => {
+    sFilter[mi] = {};
+
+    const allTests = mod.suites.flatMap(s => s.tests);
+    const modPass  = allTests.filter(t=>t.status==='pass').length;
+    const modSkip  = allTests.filter(t=>t.status==='skip').length;
+    const modTotal = allTests.length;
+
+    // Init sFilter for 'all' tab + each suite
+    sFilter[mi]['all'] = 'all';
+    mod.suites.forEach((s, si) => sFilter[mi][si] = 'all');
+
+    // ── ALL TAB (first) + suite tabs ──
+    const allBadge = `<span class="tbg tbg-p">&#10003;${modPass}</span>${modSkip>0?` <span class="tbg tbg-s">&#9675;${modSkip}</span>`:''}`;
+    let tabsHtml = `<div class="stab active" id="tab-${mi}-all" onclick="switchTab(${mi},'all')">All ${allBadge}</div>`;
+    tabsHtml += mod.suites.map((s, si) => {
+      const sp = s.tests.filter(t=>t.status==='pass').length;
+      const ss = s.tests.filter(t=>t.status==='skip').length;
+      let badges = `<span class="tbg tbg-p">&#10003;${sp}</span>`;
+      if (ss > 0) badges += ` <span class="tbg tbg-s">&#9675;${ss}</span>`;
+      return `<div class="stab" id="tab-${mi}-${si}" onclick="switchTab(${mi},${si})">${s.label} ${badges}</div>`;
+    }).join('');
+
+    // ── ALL PANEL (first, active) ──
+    let panelsHtml = `<div class="suite-panel active" id="sp-${mi}-all">
+      ${makeSfBar(mi,'all',allTests)}
+      <div class="test-list" id="tl-${mi}-all">${allTests.map(makeRow).join('')}</div>
+      <div class="no-match" id="nm-${mi}-all">No tests match the current filter.</div>
+    </div>`;
+
+    // ── INDIVIDUAL SUITE PANELS ──
+    panelsHtml += mod.suites.map((s, si) => {
+      return `<div class="suite-panel" id="sp-${mi}-${si}">
+        ${makeSfBar(mi,si,s.tests)}
+        <div class="test-list" id="tl-${mi}-${si}">${s.tests.map(makeRow).join('')}</div>
+        <div class="no-match" id="nm-${mi}-${si}">No tests match the current filter.</div>
+      </div>`;
+    }).join('');
+
+    // ── CARD ──
+    const card = document.createElement('div');
+    card.className = 'mod-card';
+    card.id = `mc-${mi}`;
+    card.innerHTML = `
+      <div class="mod-hdr" onclick="toggleMod(${mi})">
+        <div class="mod-hdr-left">
+          <span class="mod-icon">${mod.icon}</span>
+          <div>
+            <div class="mod-title">${mod.name}</div>
+            <div class="mod-desc">${mod.desc}</div>
+          </div>
+        </div>
+        <div class="mod-kpis">
+          <div class="mk mk-t"><div class="mk-num">${modTotal}</div><div class="mk-lbl">Total</div></div>
+          <div class="mk mk-p"><div class="mk-num">${modPass}</div><div class="mk-lbl">Pass</div></div>
+          <div class="mk mk-s"><div class="mk-num">${modSkip}</div><div class="mk-lbl">Skip</div></div>
+        </div>
+        <span class="mod-chevron open" id="chev-${mi}">&#9654;</span>
+      </div>
+      <div class="mod-body" id="mb-${mi}">
+        <div class="suite-tabs" id="stabs-${mi}">${tabsHtml}</div>
+        <div id="spnls-${mi}">${panelsHtml}</div>
+      </div>`;
+    col.appendChild(card);
+  });
+}
+
+// ─── TOGGLE MODULE COLLAPSE ───────────────────────────────────────
+function toggleMod(mi) {
+  const body  = document.getElementById(`mb-${mi}`);
+  const chev  = document.getElementById(`chev-${mi}`);
+  const open  = !body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', open);
+  chev.classList.toggle('open', !open);
+}
+
+let allCollapsed = false;
+function toggleAll() {
+  allCollapsed = !allCollapsed;
+  R.modules.forEach((_, mi) => {
+    const body = document.getElementById(`mb-${mi}`);
+    const chev = document.getElementById(`chev-${mi}`);
+    body.classList.toggle('collapsed', allCollapsed);
+    chev.classList.toggle('open', !allCollapsed);
+  });
+  document.querySelector('.btn-sm').textContent = allCollapsed ? 'Expand All' : 'Collapse All';
+}
+
+// ─── SWITCH SUITE TAB ─────────────────────────────────────────────
+function switchTab(mi, si) {
+  document.querySelectorAll(`#stabs-${mi} .stab`).forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll(`#spnls-${mi} .suite-panel`).forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${mi}-${si}`).classList.add('active');
+  document.getElementById(`sp-${mi}-${si}`).classList.add('active');
+  applyToSuite(mi, si);
+}
+
+// ─── SUITE-LEVEL FILTER ───────────────────────────────────────────
+function setSuiteFilter(mi, si, status, btn) {
+  sFilter[mi][si] = status;
+  const bar = document.getElementById(`sfbar-${mi}-${si}`);
+  bar.querySelectorAll('.sf-btn').forEach(b => {
+    b.className = 'sf-btn';
+  });
+  btn.className = `sf-btn on-${status}`;
+  applyToSuite(mi, si);
+}
+
+// ─── APPLY FILTERS TO ONE SUITE ──────────────────────────────────
+function applyToSuite(mi, si) {
+  const sf = sFilter[mi][si] || 'all';
+  const rows = document.querySelectorAll(`#tl-${mi}-${si} .trow`);
+  let vis = 0;
+  rows.forEach(row => {
+    const rs  = row.dataset.s;
+    const rq  = row.dataset.q;
+    const sfOk = sf === 'all' || rs === sf;
+    const gfOk = gFilter === 'all' || rs === gFilter;
+    const sqOk = !gSearch || rq.includes(gSearch);
+    const show = sfOk && gfOk && sqOk;
+    row.classList.toggle('row-hidden', !show);
+    if (show) vis++;
+  });
+  const sc = document.getElementById(`sc-${mi}-${si}`);
+  if (sc) sc.textContent = `${vis} test${vis!==1?'s':''}`;
+  const nm = document.getElementById(`nm-${mi}-${si}`);
+  if (nm) nm.style.display = vis === 0 ? 'block' : 'none';
+}
+
+// ─── APPLY FILTERS TO ALL SUITES ─────────────────────────────────
+function applyAll() {
+  R.modules.forEach((mod, mi) => {
+    let modHasVisible = false;
+    // Apply to 'all' panel and each suite panel
+    const sids = ['all', ...mod.suites.map((_,si) => si)];
+    sids.forEach(sid => {
+      applyToSuite(mi, sid);
+      const rows = document.querySelectorAll(`#tl-${mi}-${sid} .trow:not(.row-hidden)`);
+      if (rows.length > 0) modHasVisible = true;
+    });
+    const card = document.getElementById(`mc-${mi}`);
+    if (gFilter === 'all' && !gSearch) {
+      card.classList.remove('card-hidden');
+    } else {
+      card.classList.toggle('card-hidden', !modHasVisible);
+    }
+  });
+}
+
+// ─── GLOBAL FILTER ───────────────────────────────────────────────
+function globalFilter(status, btn) {
+  gFilter = status;
+  document.querySelectorAll('.fpill').forEach(p => {
+    p.className = 'fpill';
+  });
+  btn.className = `fpill on-${status}`;
+  // If clicking a status filter, open all collapsed modules so user can see results
+  if (status !== 'all') {
+    R.modules.forEach((_, mi) => {
+      const body = document.getElementById(`mb-${mi}`);
+      const chev = document.getElementById(`chev-${mi}`);
+      body.classList.remove('collapsed');
+      chev.classList.add('open');
+    });
+    allCollapsed = false;
+    document.querySelector('.btn-sm').textContent = 'Collapse All';
+  }
+  applyAll();
+}
+
+// ─── SEARCH ──────────────────────────────────────────────────────
+function onSearch(val) {
+  gSearch = val.trim().toLowerCase();
+  if (gSearch) {
+    // expand all modules when searching
+    R.modules.forEach((_, mi) => {
+      document.getElementById(`mb-${mi}`).classList.remove('collapsed');
+      document.getElementById(`chev-${mi}`).classList.add('open');
+    });
+    allCollapsed = false;
+  }
+  applyAll();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+build();
+
+// Set sidebar top = toolbar actual height so it sticks right below toolbar
+function fixSidebarTop() {
+  const toolbar = document.querySelector('.toolbar');
+  const sidebar = document.querySelector('.sidebar');
+  if (toolbar && sidebar) {
+    const h = toolbar.getBoundingClientRect().height;
+    sidebar.style.top = (h + 8) + 'px';
+    sidebar.style.maxHeight = 'calc(100vh - ' + (h + 16) + 'px)';
+  }
+}
+fixSidebarTop();
+window.addEventListener('resize', fixSidebarTop);
+</script>
+</body>
+</html>
