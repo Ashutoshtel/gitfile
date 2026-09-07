@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint 14 — Production Health Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E16;
+    --bg-2:#0D131E;
+    --surface:#121927;
+    --surface-2:#161F30;
+    --border:#1F2A3B;
+    --border-soft:#182131;
+    --ink:#EAF0F6;
+    --ink-2:#B7C1D1;
+    --ink-3:#7C8AA0;
+    --mint:#2FD98A;
+    --mint-dim:rgba(47,217,138,.12);
+    --mint-line:rgba(47,217,138,.35);
+    --cyan:#5EC8F2;
+    --amber:#F2C14E;
+    --red:#F2665E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'DM Mono',monospace;}
+  .wrap{max-width:900px;margin:0 auto;padding:0 24px 80px;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse 900px 500px at 12% -10%, rgba(47,217,138,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+    border-bottom:1px solid var(--border-soft);
+    padding:56px 24px 40px;
+    overflow:hidden;
+  }
+  .hero-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:48px;flex-wrap:wrap;}
+  .hero-text{flex:1;min-width:280px;}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--mint-dim);border:1px solid var(--mint-line);
+    color:var(--mint);border-radius:20px;padding:5px 14px;
+    font-size:12.5px;font-weight:500;margin-bottom:22px;
+  }
+  .pill-dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);}
+  h1{
+    font-family:'DM Serif Display',serif;font-weight:400;
+    font-size:clamp(30px,4.2vw,46px);line-height:1.14;
+    margin:0 0 14px;color:var(--ink);
+  }
+  .hero-sub{font-size:15.5px;line-height:1.6;color:var(--ink-2);max-width:480px;margin:0 0 22px;}
+  .hero-meta{font-size:13px;color:var(--ink-3);}
+  .hero-meta b{color:var(--ink-2);font-weight:500;}
+  .hero-meta .sep{color:var(--border);margin:0 8px;}
+
+  /* ---------- GAUGE ---------- */
+  .gauge-box{position:relative;width:168px;height:168px;flex-shrink:0;}
+  .gauge-box svg{transform:rotate(-90deg);}
+  .gauge-label{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+  }
+  .gauge-num{font-family:'DM Serif Display',serif;font-size:34px;color:var(--mint);line-height:1;}
+  .gauge-cap{font-size:10.5px;color:var(--ink-3);margin-top:4px;letter-spacing:.02em;}
+
+  /* ---------- STAT STRIP ---------- */
+  .stat-strip{
+    display:flex;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    margin:36px 0 0;
+    overflow:hidden;
+  }
+  .stat{flex:1;padding:20px 16px;text-align:center;border-right:1px solid var(--border);}
+  .stat:last-child{border-right:none;}
+  .stat-num{font-family:'DM Serif Display',serif;font-size:26px;color:var(--ink);line-height:1;}
+  .stat-num.mint{color:var(--mint);}
+  .stat-cap{font-size:11.5px;color:var(--ink-3);margin-top:6px;}
+
+  /* ---------- CHECKLIST ---------- */
+  .section-lbl{
+    font-size:13px;color:var(--ink-3);margin:44px 0 14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .toggle-all{
+    background:none;border:1px solid var(--border);color:var(--ink-2);
+    font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .toggle-all:hover{border-color:var(--ink-3);color:var(--ink);}
+
+  .check-row{
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:8px;
+    background:var(--surface);
+    overflow:hidden;
+    transition:border-color .15s ease;
+  }
+  .check-row.open{border-color:var(--border-soft);}
+  .check-head{
+    display:flex;align-items:center;gap:14px;
+    padding:15px 18px;cursor:pointer;
+    user-select:none;
+  }
+  .check-num{
+    font-size:12px;color:var(--ink-3);width:22px;flex-shrink:0;
+  }
+  .check-mark{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--mint-dim);border:1px solid var(--mint-line);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .check-mark svg{width:12px;height:12px;}
+  .check-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;}
+  .check-title{flex:1;font-size:14.5px;font-weight:500;color:var(--ink);}
+  .check-desc{font-size:12px;color:var(--ink-3);margin-top:2px;font-weight:400;}
+  .check-count{font-size:12.5px;color:var(--ink-3);flex-shrink:0;}
+  .check-chev{
+    color:var(--ink-3);transition:transform .18s ease;flex-shrink:0;
+    font-size:11px;
+  }
+  .check-row.open .check-chev{transform:rotate(90deg);}
+
+  .check-body{
+    max-height:0;overflow:hidden;
+    transition:max-height .2s ease;
+    border-top:1px solid transparent;
+  }
+  .check-row.open .check-body{border-top:1px solid var(--border);}
+  .check-body-inner{padding:6px 18px 14px 54px;}
+
+  .suite-block{margin-top:12px;}
+  .suite-name{font-size:12px;color:var(--cyan);margin-bottom:6px;font-weight:500;}
+  .suite-file{font-size:10.5px;color:var(--ink-3);margin-left:6px;}
+  .test-line{
+    display:flex;align-items:baseline;gap:10px;
+    padding:4px 0;font-size:12.5px;color:var(--ink-2);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .test-line:last-child{border-bottom:none;}
+  .test-check{color:var(--mint);flex-shrink:0;font-size:11px;}
+  .test-title{flex:1;line-height:1.4;}
+  .test-dur{color:var(--ink-3);font-size:11px;flex-shrink:0;}
+
+  /* ---------- FOOTER ---------- */
+  .foot{
+    margin-top:56px;padding-top:22px;border-top:1px solid var(--border-soft);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    font-size:12px;color:var(--ink-3);
+  }
+  .foot b{color:var(--ink-2);font-weight:500;}
+
+  @media(max-width:640px){
+    .hero-inner{flex-direction:column;align-items:flex-start;}
+    .gauge-box{order:-1;margin:0 auto 8px;}
+    .stat-strip{flex-wrap:wrap;}
+    .stat{flex:1 1 33%;border-bottom:1px solid var(--border);}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="pill"><span class="pill-dot"></span>All systems verified</div>
+      <h1>Sprint 14 shipped clean.</h1>
+      <p class="hero-sub">52 checks across 7 modules on Production — zero failures, zero skips, five minutes end to end.</p>
+      <div class="hero-meta mono">
+        <b>Production</b><span class="sep">·</span>7 Sep 2026<span class="sep">·</span>Ashutosh Kumar
+      </div>
+    </div>
+    <div class="gauge-box">
+      <svg width="168" height="168" viewBox="0 0 168 168">
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#1A2334" stroke-width="14"/>
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#2FD98A" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="452.4 452.4" stroke-dashoffset="0"/>
+      </svg>
+      <div class="gauge-label">
+        <div class="gauge-num">100%</div>
+        <div class="gauge-cap mono">pass rate</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" style="padding-left:0;padding-right:0;">
+    <div class="stat-strip">
+      <div class="stat"><div class="stat-num">52</div><div class="stat-cap">Checks run</div></div>
+      <div class="stat"><div class="stat-num mint">52</div><div class="stat-cap">Passed</div></div>
+      <div class="stat"><div class="stat-num">0</div><div class="stat-cap">Skipped</div></div>
+      <div class="stat"><div class="stat-num">0</div><div class="stat-cap">Failed</div></div>
+      <div class="stat"><div class="stat-num">5m 05s</div><div class="stat-cap">Duration</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="section-lbl">
+    <span>Verification checklist — 7 modules, in run order</span>
+    <button class="toggle-all" id="toggleAllBtn" onclick="toggleAll()">Expand all</button>
+  </div>
+  <div id="checklist"></div>
+
+  <div class="foot mono">
+    <span>PeConnect CPaaS &nbsp;·&nbsp; Playwright / TypeScript &nbsp;·&nbsp; Chromium</span>
+    <span>Sprint 14 &nbsp;·&nbsp; Post-deployment sanity</span>
+  </div>
+</div>
+
+<script>
+const R = {"stats": {"total": 52, "pass": 52, "skip": 0, "fail": 0}, "modules": [{"name": "Authentication", "icon": "🔐", "desc": "Auth setup and session validation on PROD.", "suites": [{"label": "Auth Setup", "file": "setup/auth.setup.ts", "tests": [{"title": "authenticate user", "status": "pass", "duration": 2635}, {"title": "authenticate executive", "status": "pass", "duration": 1405}, {"title": "authenticate admin", "status": "pass", "duration": 613}]}]}, {"name": "Template List", "icon": "📋", "desc": "Template listing: columns, data, action icons, filters, search, pagination and cleanup.", "suites": [{"label": "Template List Sanity", "file": "ui/template-management/template-list.spec.ts", "tests": [{"title": "TC_TL_001 - Template list page loads with all 10 columns, valid data, correct formats @sanity", "status": "pass", "duration": 2532}, {"title": "TC_TL_003 - APPROVED row icons: Edit only when not order-details and not tracking @sanity", "status": "pass", "duration": 2548}, {"title": "TC_TL_010 - Status dropdown has correct options and count (no DELETED, no extras) @sanity", "status": "pass", "duration": 2363}, {"title": "TC_TL_014 - Reset clears all filters and reloads full list @sanity", "status": "pass", "duration": 3488}, {"title": "TC_TL_016 - Delete icon shows confirmation dialog @sanity", "status": "pass", "duration": 2826}, {"title": "TC_TL_027 - Non-matching search shows empty state or zero rows @sanity", "status": "pass", "duration": 3007}, {"title": "TC_TL_034 - Download with Utility filter applied shows toast @sanity", "status": "pass", "duration": 3929}, {"title": "TC024 - Partial name search returns filtered results @sanity", "status": "pass", "duration": 3448}, {"title": "TC029 - Previous button is disabled on page 1 @sanity", "status": "pass", "duration": 2518}, {"title": "TC031 - Final Category dropdown contains Marketing and Utility @sanity", "status": "pass", "duration": 3237}, {"title": "TC032 - Table columns are in correct order @sanity", "status": "pass", "duration": 3093}, {"title": "TC033 - Search button is enabled when template name is filled @sanity", "status": "pass", "duration": 3269}, {"title": "TC035 - Create Template button navigates to create page @sanity", "status": "pass", "duration": 3084}]}, {"label": "Template Data Cleanup", "file": "ui/template-management/cleanup.spec.ts", "tests": [{"title": "TC_TL_037 - Delete the templates this run created (by name prefix)", "status": "pass", "duration": 36727}]}]}, {"name": "Create Template", "icon": "📝", "desc": "Template creation flows across UI and API: form sections, S2S creation, order details, submit.", "suites": [{"label": "Create Template API", "file": "api/create-template/create-template-api.spec.ts", "tests": [{"title": "TC_CT_A_001 - Request without Authorization header is rejected @sanity", "status": "pass", "duration": 106}, {"title": "TC_CT_A_006 - Minimal valid payload (body only) returns SUCCESS with PENDING status @sanity", "status": "pass", "duration": 6514}, {"title": "TC_CT_A_048 - OD template IMAGE header + ORDER_DETAILS button (MARKETING) returns SUCCESS @sanity", "status": "pass", "duration": 9560}]}, {"label": "Create Template S2S", "file": "api/s2s/create-template-s2s.spec.ts", "tests": [{"title": "TC_CT_S2S_001 - generateToken with valid credentials returns a token @sanity", "status": "pass", "duration": 102}, {"title": "TC_CT_S2S_003 - Create without auth token returns 401 or 403 @sanity", "status": "pass", "duration": 85}, {"title": "TC_CT_S2S_004 - Minimal create-template without portfolioIds returns SUCCESS @sanity", "status": "pass", "duration": 9950}]}, {"label": "Create & Submit", "file": "ui/template-management/create-template/create-submit.spec.ts", "tests": [{"title": "TC_CT_CS_001 - MARKETING template with TEXT header creates successfully @sanity", "status": "pass", "duration": 15226}, {"title": "TC_CT_CS_003 - Template with IMAGE header creates successfully @sanity", "status": "pass", "duration": 17553}, {"title": "TC_CT_CS_009 - Template with VIDEO header creates successfully @sanity", "status": "pass", "duration": 7056}, {"title": "TC_CT_CS_010 - Template with DOCUMENT header creates successfully @sanity", "status": "pass", "duration": 19231}]}, {"label": "Button Combinations (UI)", "file": "ui/template-management/create-template/button-combinations.spec.ts", "tests": [{"title": "TC_CT_BC_004 - Quick Reply + URL + Phone all together — full combo submits and appears in list @sanity", "status": "pass", "duration": 22313}]}, {"label": "Form Validation", "file": "ui/template-management/create-template/form-validation.spec.ts", "tests": [{"title": "TC_CT_FV_001 - Submit completely empty form shows all required field errors @sanity", "status": "pass", "duration": 5599}]}, {"label": "Order Details", "file": "ui/template-management/create-template/order-details.spec.ts", "tests": [{"title": "TC_CT_OD_002 - ORDER DETAILS template with IMAGE header and body variable submits successfully @sanity", "status": "pass", "duration": 17092}]}, {"label": "Request Contact Info", "file": "ui/template-management/create-template/request-contact-info.spec.ts", "tests": [{"title": "TC_CT_RCI_012 - Request Contact Info template (no vars) appears in template list after creation @sanity", "status": "pass", "duration": 16293}]}]}, {"name": "Bulk Messaging S2S API", "icon": "🔗", "desc": "Bulk messaging sanity on PROD post Sprint 14 release: campaign send and DELIVERY webhook checks.", "suites": [{"label": "Bulk Messaging API", "file": "api/s2s/bulk-messaging-api.spec.ts", "tests": [{"title": "TC_BULK_002 - Missing \"templateId\" is rejected @bulk @sanity", "status": "pass", "duration": 538}, {"title": "TC_BULK_004 - Empty \"recipients\" array is rejected @bulk @sanity", "status": "pass", "duration": 99}, {"title": "TC_BULK_007 - Valid campaignId is used directly and accepted @bulk @sanity", "status": "pass", "duration": 2725}, {"title": "TC_BULK_035 - No header: bulk send is accepted and really delivered @bulk @sanity", "status": "pass", "duration": 14704}, {"title": "TC_BULK_039 - Image header: bulk send is accepted and really delivered @bulk @sanity", "status": "pass", "duration": 8387}, {"title": "TC_BULK_041 - Video header: bulk send is accepted and really delivered @bulk @sanity", "status": "pass", "duration": 10318}, {"title": "TC_BULK_043 - Document header: bulk send is accepted and really delivered @bulk @sanity", "status": "pass", "duration": 6355}]}, {"label": "Webhook Callback Setup", "file": "setup/webhook-callback.setup.ts", "tests": [{"title": "point WABA delivery callback at this environment", "status": "pass", "duration": 4747}]}]}, {"name": "Interactive Messaging S2S API", "icon": "💬", "desc": "Interactive Send API validated on PROD post Sprint 14 release.", "suites": [{"label": "Interactive Send API", "file": "api/s2s/interactive-send-api.spec.ts", "tests": [{"title": "TC_INT_001 rejects a body with no channelType @sanity", "status": "pass", "duration": 91}, {"title": "TC_INT_003 rejects a body with no type @sanity", "status": "pass", "duration": 80}, {"title": "TC_INT_011 rejects a send when no 24-hour window is open @sanity", "status": "pass", "duration": 171}, {"title": "TC_INT_020 sends text @sanity", "status": "pass", "duration": 1815}, {"title": "TC_INT_025 sends audio @sanity", "status": "pass", "duration": 894}, {"title": "TC_INT_029 sends interactive reply buttons, text header @sanity", "status": "pass", "duration": 890}, {"title": "TC_INT_031 sends interactive list @sanity", "status": "pass", "duration": 941}, {"title": "TC_INT_035 sends interactive carousel @sanity", "status": "pass", "duration": 934}, {"title": "TC_INT_056 reports a session send's status through to the webhook @sanity", "status": "pass", "duration": 3836}]}]}, {"name": "Template Fetch API", "icon": "🔍", "desc": "S2S template filters endpoint sanity check on PROD.", "suites": [{"label": "Template Filter API", "file": "api/s2s/template-filter-api.spec.ts", "tests": [{"title": "TC_TF_S2S_BASE_001 — template_id: own-portfolio valid ID @sanity", "status": "pass", "duration": 179}, {"title": "TC_TF_S2S_BASE_002 — template_name: valid own-portfolio name @sanity", "status": "pass", "duration": 109}]}]}, {"name": "Traffic Dashboard API", "icon": "📊", "desc": "Executive-role Traffic Dashboard API sanity check on PROD.", "suites": [{"label": "Summary", "file": "api/executive_role/traffic_dashboard/summary.spec.ts", "tests": [{"title": "TC_TD_SM_AUTH_001 — no Authorization header → 401 @sanity", "status": "pass", "duration": 168}, {"title": "TC_TD_SM_DATE_004 — future date range (both > today) → 200 @sanity", "status": "pass", "duration": 2119}]}]}]};
+
+const checkSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 4.5L6 12L2.5 8.5" stroke="#2FD98A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function fmtDur(ms){
+  if(ms < 1000) return ms + 'ms';
+  return (ms/1000).toFixed(1) + 's';
+}
+
+function render(){
+  const list = document.getElementById('checklist');
+  list.innerHTML = R.modules.map((mod, mi) => {
+    const allTests = mod.suites.flatMap(s => s.tests);
+    const total = allTests.length;
+    const suitesHtml = mod.suites.map(s => `
+      <div class="suite-block">
+        <div class="suite-name">${s.label}<span class="suite-file mono">${s.file}</span></div>
+        ${s.tests.map(t => `
+          <div class="test-line">
+            <span class="test-check">${checkSvg}</span>
+            <span class="test-title">${t.title}</span>
+            <span class="test-dur mono">${fmtDur(t.duration)}</span>
+          </div>`).join('')}
+      </div>`).join('');
+
+    return `
+    <div class="check-row" id="row-${mi}">
+      <div class="check-head" onclick="toggleRow(${mi})">
+        <span class="check-num mono">${String(mi+1).padStart(2,'0')}</span>
+        <span class="check-mark">${checkSvg}</span>
+        <span class="check-icon">${mod.icon}</span>
+        <span>
+          <div class="check-title">${mod.name}</div>
+          <div class="check-desc">${mod.desc}</div>
+        </span>
+        <span class="check-count mono">${total} checks</span>
+        <span class="check-chev">&#9656;</span>
+      </div>
+      <div class="check-body" id="body-${mi}">
+        <div class="check-body-inner">${suitesHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRow(mi){
+  const row = document.getElementById(`row-${mi}`);
+  const body = document.getElementById(`body-${mi}`);
+  const isOpen = row.classList.contains('open');
+  if(isOpen){
+    row.classList.remove('open');
+    body.style.maxHeight = null;
+  } else {
+    row.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+}
+
+let allOpen = false;
+function toggleAll(){
+  allOpen = !allOpen;
+  document.getElementById('toggleAllBtn').textContent = allOpen ? 'Collapse all' : 'Expand all';
+  R.modules.forEach((_, mi) => {
+    const row = document.getElementById(`row-${mi}`);
+    const body = document.getElementById(`body-${mi}`);
+    if(allOpen){
+      row.classList.add('open');
+      body.style.maxHeight = body.scrollHeight + 'px';
+    } else {
+      row.classList.remove('open');
+      body.style.maxHeight = null;
+    }
+  });
+}
+
+render();
+</script>
+
+</body>
+</html>
