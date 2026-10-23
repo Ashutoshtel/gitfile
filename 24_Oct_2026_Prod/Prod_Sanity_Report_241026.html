@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Health Check — 24 Oct 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E16;
+    --bg-2:#0D131E;
+    --surface:#121927;
+    --surface-2:#161F30;
+    --border:#1F2A3B;
+    --border-soft:#182131;
+    --ink:#EAF0F6;
+    --ink-2:#B7C1D1;
+    --ink-3:#7C8AA0;
+    --mint:#2FD98A;
+    --mint-dim:rgba(47,217,138,.12);
+    --mint-line:rgba(47,217,138,.35);
+    --cyan:#5EC8F2;
+    --amber:#F2C14E;
+    --red:#F2665E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'DM Mono',monospace;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px 80px;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse 900px 500px at 12% -10%, rgba(47,217,138,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+    border-bottom:1px solid var(--border-soft);
+    padding:56px 24px 40px;
+    overflow:hidden;
+  }
+  .hero-inner{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:48px;flex-wrap:wrap;}
+  .hero-text{flex:1;min-width:280px;}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--mint-dim);border:1px solid var(--mint-line);
+    color:var(--mint);border-radius:20px;padding:5px 14px;
+    font-size:13.5px;font-weight:500;margin-bottom:22px;
+  }
+  .pill.amber{background:rgba(242,193,78,.12);border-color:rgba(242,193,78,.35);color:var(--amber);}
+  .pill.amber .pill-dot{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+  .pill-dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);}
+  h1{
+    font-family:'DM Serif Display',serif;font-weight:400;
+    font-size:clamp(30px,4.2vw,46px);line-height:1.14;
+    margin:0 0 14px;color:var(--ink);
+  }
+  .hero-sub{font-size:16.5px;line-height:1.65;color:var(--ink-2);max-width:560px;margin:0 0 22px;}
+  .hero-meta{font-size:14px;color:var(--ink-3);}
+  .hero-meta b{color:var(--ink-2);font-weight:500;}
+  .hero-meta .sep{color:var(--border);margin:0 8px;}
+
+  /* ---------- GAUGE ---------- */
+  .gauge-box{position:relative;width:168px;height:168px;flex-shrink:0;}
+  .gauge-box svg{transform:rotate(-90deg);}
+  .gauge-label{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+  }
+  .gauge-num{font-family:'DM Serif Display',serif;font-size:34px;color:var(--mint);line-height:1;}
+  .gauge-cap{font-size:10.5px;color:var(--ink-3);margin-top:4px;letter-spacing:.02em;}
+
+  /* ---------- STAT STRIP ---------- */
+  .stat-strip{
+    display:flex;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    margin:36px 0 0;
+    overflow:hidden;
+  }
+  .stat{flex:1;padding:20px 16px;text-align:center;border-right:1px solid var(--border);}
+  .stat:last-child{border-right:none;}
+  .stat-num{font-family:'DM Serif Display',serif;font-size:26px;color:var(--ink);line-height:1;}
+  .stat-num.mint{color:var(--mint);}
+  .stat-num.red{color:var(--red);}
+  .stat-num.amber{color:var(--amber);}
+  .stat-cap{font-size:13px;color:var(--ink-3);margin-top:6px;}
+
+  /* ---------- CHECKLIST ---------- */
+  .section-lbl{
+    font-size:14.5px;color:var(--ink-3);margin:44px 0 14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .toggle-all{
+    background:none;border:1px solid var(--border);color:var(--ink-2);
+    font-size:13px;padding:6px 14px;border-radius:7px;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .toggle-all:hover{border-color:var(--ink-3);color:var(--ink);}
+
+  .check-row{
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:8px;
+    background:var(--surface);
+    overflow:hidden;
+    transition:border-color .15s ease;
+  }
+  .check-row.open{border-color:var(--border-soft);}
+  .check-head{
+    display:flex;align-items:center;gap:14px;
+    padding:15px 18px;cursor:pointer;
+    user-select:none;
+  }
+  .check-num{
+    font-size:13.5px;color:var(--ink-3);width:24px;flex-shrink:0;
+  }
+  .check-mark{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--mint-dim);border:1px solid var(--mint-line);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .check-mark.fail{background:rgba(242,102,94,.12);border-color:rgba(242,102,94,.35);}
+  .check-mark.warn{background:rgba(242,193,78,.12);border-color:rgba(242,193,78,.35);}
+  .check-mark svg{width:12px;height:12px;}
+  .check-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;}
+  .check-info{flex:1;min-width:0;}
+  .check-title{flex:1;font-size:17px;font-weight:600;color:var(--ink);}
+  .check-desc{font-size:13.5px;color:var(--ink-3);margin-top:3px;font-weight:400;line-height:1.4;}
+  .check-count{font-size:14px;color:var(--ink-3);flex-shrink:0;}
+  .check-chev{
+    color:var(--ink-3);transition:transform .18s ease;flex-shrink:0;
+    font-size:11px;
+  }
+  .check-row.open .check-chev{transform:rotate(90deg);}
+
+  .check-body{
+    max-height:0;overflow:hidden;
+    transition:max-height .2s ease;
+    border-top:1px solid transparent;
+  }
+  .check-row.open .check-body{border-top:1px solid var(--border);}
+  .check-body-inner{padding:6px 18px 14px 54px;}
+
+  .suite-block{margin-top:18px;}
+  .suite-name{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;font-size:15px;color:var(--cyan);margin-bottom:6px;font-weight:600;}
+  .suite-file{font-size:12px;color:var(--ink-3);font-weight:400;}
+  .suite-n{margin-left:auto;font-size:12.5px;color:var(--ink-3);font-weight:400;}
+  .test-line{
+    display:flex;align-items:baseline;gap:12px;
+    padding:7px 0;font-size:14.5px;color:var(--ink-2);
+    border-bottom:1px solid var(--border-soft);
+    line-height:1.45;
+  }
+  .test-line:last-child{border-bottom:none;}
+  .test-check{color:var(--mint);flex-shrink:0;font-size:13px;}
+  .test-check svg{width:14px;height:14px;display:block;}
+  .test-title{flex:1;line-height:1.5;min-width:0;display:flex;align-items:baseline;gap:10px;}
+  .tt{flex:1;min-width:0;}
+  .tid{flex-shrink:0;display:inline-block;box-sizing:content-box;font-size:12px;color:var(--ink-3);
+       background:var(--surface-2);border:1px solid var(--border-soft);padding:1px 7px;
+       border-radius:4px;white-space:nowrap;}
+  .fail-note{display:block;margin-top:7px;font-size:12.5px;line-height:1.55;color:var(--red);
+       background:rgba(242,102,94,.08);border:1px solid rgba(242,102,94,.28);
+       border-radius:6px;padding:7px 11px;word-break:break-word;}
+  .skip-note{display:block;margin-top:4px;color:var(--amber);font-size:12.5px;}
+  .test-dur{color:var(--ink-3);font-size:13px;flex-shrink:0;}
+
+  /* ---------- FOOTER ---------- */
+  .foot{
+    margin-top:56px;padding-top:22px;border-top:1px solid var(--border-soft);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    font-size:13.5px;color:var(--ink-3);
+  }
+  .foot b{color:var(--ink-2);font-weight:500;}
+
+  @media(max-width:640px){
+    .hero-inner{flex-direction:column;align-items:flex-start;}
+    .gauge-box{order:-1;margin:0 auto 8px;}
+    .stat-strip{flex-wrap:wrap;}
+    .stat{flex:1 1 33%;border-bottom:1px solid var(--border);}
+  }
+
+  @media(max-width:640px){
+    .check-head{flex-wrap:wrap;gap:8px 12px;padding:14px;}
+    .check-num{display:none;}
+    .check-info{flex:1 1 calc(100% - 90px);min-width:0;}
+    .check-count{order:10;padding-left:34px;font-size:13px;}
+    .check-chev{order:11;margin-left:auto;}
+    .check-body-inner{padding:4px 14px 14px 14px;}
+    .test-line{gap:10px;}
+    .test-title{flex-direction:column;align-items:flex-start;gap:5px;}
+    .tid{min-width:0 !important;}
+    .tt{overflow-wrap:anywhere;}
+    .test-dur{white-space:nowrap;}
+    .suite-n{margin-left:0;flex-basis:100%;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="pill amber"><span class="pill-dot"></span>1 check needs a look</div>
+      <h1>Production sanity — 1 failure flagged.</h1>
+      <p class="hero-sub">92 checks across 11 modules on Production after the 24 October deployment — 91 passed, 0 skipped, and 1 failure in the Single Message Send API (templateText tie-break) to review.</p>
+      <div class="hero-meta mono">
+        <b>Production</b><span class="sep">·</span>24 Oct 2026<span class="sep">·</span>Ashutosh Kumar
+      </div>
+    </div>
+    <div class="gauge-box">
+      <svg width="168" height="168" viewBox="0 0 168 168">
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#1A2334" stroke-width="14"/>
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#2FD98A" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="447.5 452.4" stroke-dashoffset="0"/>
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#F2665E" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="4.9 452.4" stroke-dashoffset="-447.5"/>
+      </svg>
+      <div class="gauge-label">
+        <div class="gauge-num" style="color:var(--amber);font-size:30px;">98.9%</div>
+        <div class="gauge-cap mono">pass rate</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" style="padding-left:0;padding-right:0;">
+    <div class="stat-strip">
+      <div class="stat"><div class="stat-num">92</div><div class="stat-cap">Checks run</div></div>
+      <div class="stat"><div class="stat-num mint">91</div><div class="stat-cap">Passed</div></div>
+      <div class="stat"><div class="stat-num">0</div><div class="stat-cap">Skipped</div></div>
+      <div class="stat"><div class="stat-num red">1</div><div class="stat-cap">Failed</div></div>
+      <div class="stat"><div class="stat-num">7m 04s</div><div class="stat-cap">Duration</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="section-lbl">
+    <span>Verification checklist — 11 modules</span>
+    <span style="display:flex;gap:8px;">
+      <button class="toggle-all" id="failOnlyBtn" onclick="toggleFailOnly()">Show issues only</button>
+      <button class="toggle-all" id="toggleAllBtn" onclick="toggleAll()">Expand all</button>
+    </span>
+  </div>
+  <div id="checklist"></div>
+
+  <div class="foot mono">
+    <span>PeConnect CPaaS &nbsp;·&nbsp; Playwright / TypeScript</span>
+    <span>Production deployment &nbsp;·&nbsp; 24 Oct 2026 &nbsp;·&nbsp; Post-deployment sanity</span>
+  </div>
+</div>
+
+<script>
+const R = {"stats": {"total": 92, "pass": 91, "skip": 0, "fail": 1}, "modules": [{"name": "Setup & Authentication", "icon": "🔐", "desc": "Role logins (user, executive, admin) and pointing the WABA delivery callback at this environment.", "suites": [{"label": "Role authentication", "file": "auth.setup.ts", "tests": [{"id": "", "title": "Authenticate user", "status": "pass", "duration": 669}, {"id": "", "title": "Authenticate executive", "status": "pass", "duration": 319}, {"id": "", "title": "Authenticate admin", "status": "pass", "duration": 340}]}, {"label": "Webhook callback setup", "file": "webhook-callback.setup.ts", "tests": [{"id": "", "title": "Point WABA delivery callback at this environment", "status": "pass", "duration": 4396}]}]}, {"name": "Template List", "icon": "📋", "desc": "Listing columns, search, filters, pagination and row actions, plus cleanup of the templates created during the run.", "suites": [{"label": "Listing, search, filters & actions", "file": "3 spec files", "tests": [{"id": "TC_TL_003", "title": "APPROVED row icons: Edit only when not order-details, not tracking and not carousel", "status": "pass", "duration": 4956}, {"id": "TC_TL_010", "title": "Status dropdown has correct options and count (no DELETED, no extras)", "status": "pass", "duration": 2331}, {"id": "TC_TL_014", "title": "Reset clears all filters and reloads full list", "status": "pass", "duration": 3889}, {"id": "TC_TL_016", "title": "Delete icon shows confirmation dialog", "status": "pass", "duration": 2547}, {"id": "TC024", "title": "Partial name search returns filtered results", "status": "pass", "duration": 3976}, {"id": "TC_TL_027", "title": "Non-matching search shows empty state or zero rows", "status": "pass", "duration": 3440}, {"id": "TC029", "title": "Previous button is disabled on page 1", "status": "pass", "duration": 2505}, {"id": "TC031", "title": "Final Category dropdown contains Marketing and Utility", "status": "pass", "duration": 2782}, {"id": "TC033", "title": "Search button is enabled when template name is filled", "status": "pass", "duration": 2447}, {"id": "TC_TL_034", "title": "Download with Utility filter applied shows toast", "status": "pass", "duration": 3342}, {"id": "TC035", "title": "Create Template button navigates to create page", "status": "pass", "duration": 2379}]}, {"label": "Cleanup — runs last", "file": "template-cleanup.spec.ts", "tests": [{"id": "TC_TL_037", "title": "Delete the templates this run created (by name prefix)", "status": "pass", "duration": 21413}]}]}, {"name": "Create Template — UI", "icon": "📝", "desc": "Template creation through the Panel UI: submission by header type, form validation, button combinations, Order Details and Request Contact Info.", "suites": [{"label": "Submission scenarios", "file": "create-template-submit.spec.ts", "tests": [{"id": "TC_CT_CS_001", "title": "MARKETING template with TEXT header creates successfully", "status": "pass", "duration": 13582}, {"id": "TC_CT_CS_003", "title": "Template with IMAGE header creates successfully", "status": "pass", "duration": 12162}, {"id": "TC_CT_CS_009", "title": "Template with VIDEO header creates successfully", "status": "pass", "duration": 6371}, {"id": "TC_CT_CS_010", "title": "Template with DOCUMENT header creates successfully", "status": "pass", "duration": 12088}]}, {"label": "Form validation", "file": "create-template-form-validation.spec.ts", "tests": [{"id": "TC_CT_FV_001", "title": "Submit completely empty form shows all required field errors", "status": "pass", "duration": 5276}]}, {"label": "Button combinations", "file": "create-template-buttons.spec.ts", "tests": [{"id": "TC_CT_BC_004", "title": "Quick Reply + URL + Phone all together — full combo submits and appears in list", "status": "pass", "duration": 17359}]}, {"label": "Order details", "file": "create-template-order-details.spec.ts", "tests": [{"id": "TC_CT_OD_002", "title": "ORDER DETAILS template with IMAGE header and body variable submits successfully", "status": "pass", "duration": 14209}]}, {"label": "Request contact info", "file": "create-template-request-contact-info.spec.ts", "tests": [{"id": "TC_CT_RCI_012", "title": "Request Contact Info template (no vars) appears in template list after creation", "status": "pass", "duration": 14351}]}]}, {"name": "Create Template — API", "icon": "🔌", "desc": "Template creation through the Panel API and the S2S API: authentication, valid payloads and Order Details.", "suites": [{"label": "Panel API — authentication", "file": "create-template-api.spec.ts", "tests": [{"id": "TC_CT_A_001", "title": "Request without Authorization header is rejected", "status": "pass", "duration": 62}]}, {"label": "Panel API — valid payloads", "file": "create-template-api.spec.ts", "tests": [{"id": "TC_CT_A_006", "title": "Minimal valid payload (body only) returns SUCCESS with PENDING status", "status": "pass", "duration": 3412}]}, {"label": "Panel API — order details", "file": "create-template-api-order-details.spec.ts", "tests": [{"id": "TC_CT_A_048", "title": "OD template IMAGE header + ORDER_DETAILS button (MARKETING) returns SUCCESS", "status": "pass", "duration": 4963}]}, {"label": "S2S API — authentication", "file": "create-template-s2s.spec.ts", "tests": [{"id": "TC_CT_S2S_001", "title": "generateToken with valid credentials returns a token", "status": "pass", "duration": 59}, {"id": "TC_CT_S2S_003", "title": "Create without auth token returns 401 or 403", "status": "pass", "duration": 55}]}, {"label": "S2S API — basic create", "file": "create-template-s2s.spec.ts", "tests": [{"id": "TC_CT_S2S_004", "title": "Minimal create-template without portfolioIds returns SUCCESS", "status": "pass", "duration": 3691}]}]}, {"name": "Carousel Templates", "icon": "🎠", "desc": "Carousel creation (UI, Panel API, S2S API), carousel columns in the template list, and carousel sends via Single, Bulk and Panel campaigns.", "suites": [{"label": "Create in UI — card count boundaries", "file": "create-template-carousel-card-count.spec.ts", "tests": [{"id": "TC_CT_CAR_010", "title": "Builder defaults to exactly 2 cards on load", "status": "pass", "duration": 4511}]}, {"label": "Create in UI — category gating", "file": "create-template-carousel-category-gating.spec.ts", "tests": [{"id": "TC_CT_CAR_001", "title": "Carousel template type option is visible when Category = Marketing", "status": "pass", "duration": 4409}, {"id": "TC_CT_CAR_002", "title": "Carousel template type option is NOT visible when Category = Utility", "status": "pass", "duration": 4191}]}, {"label": "Create in UI — required-field validation", "file": "create-template-carousel-validation.spec.ts", "tests": [{"id": "TC_CT_CAR_040", "title": "All-or-none card body: body on one card only blocks submit", "status": "pass", "duration": 9019}]}, {"label": "Create in UI — end to end", "file": "create-template-carousel-e2e.spec.ts", "tests": [{"id": "TC_CT_CAR_060", "title": "Minimum boundary: 2 cards, IMAGE, Quick Reply — end to end", "status": "pass", "duration": 16190}]}, {"label": "Create via Panel API — contract", "file": "create-template-api-carousel.spec.ts", "tests": [{"id": "TC_CT_CAR_API_001", "title": "Baseline valid create returns 201 with template_id and status PENDING", "status": "pass", "duration": 20}, {"id": "TC_CT_CAR_API_002", "title": "List row marks the template as carousel with media, category and portfolio", "status": "pass", "duration": 524}]}, {"label": "Create via Panel API — card structure", "file": "create-template-api-carousel.spec.ts", "tests": [{"id": "TC_CT_CAR_API_021", "title": "1 card is rejected (minimum is 2)", "status": "pass", "duration": 1935}]}, {"label": "Create via Panel API — template-level rules", "file": "create-template-api-carousel.spec.ts", "tests": [{"id": "TC_CT_CAR_API_080", "title": "Category UTILITY", "status": "pass", "duration": 2519}]}, {"label": "Create via S2S API — contract and end to end", "file": "create-template-s2s-carousel.spec.ts", "tests": [{"id": "TC_CT_CAR_S2S_001", "title": "Baseline IMAGE carousel (2 cards, carousel_index from 1) returns 201 with the documented fields and status PENDING", "status": "pass", "duration": 40}]}, {"label": "Create via S2S API — cards", "file": "create-template-s2s-carousel.spec.ts", "tests": [{"id": "TC_CT_CAR_S2S_050", "title": "1 card", "status": "pass", "duration": 2455}]}, {"label": "Template list — carousel columns", "file": "template-list-carousel.spec.ts", "tests": [{"id": "TC_TL_001", "title": "Template list page loads with all 11 columns, valid data, correct formats", "status": "pass", "duration": 2194}, {"id": "TC032", "title": "Table columns are in correct order", "status": "pass", "duration": 2112}, {"id": "TC_TL_038", "title": "The sanity carousel fixture shows a CAROUSEL Template Type and its card count", "status": "pass", "duration": 3693}]}, {"label": "Single Send — carousel template", "file": "single-send-carousel.spec.ts", "tests": [{"id": "TC_SINGLE_019", "title": "Carousel send with one body variable on each of 2 cards is accepted and delivered", "status": "pass", "duration": 12563}]}, {"label": "Bulk Send — carousel template", "file": "bulk-send-carousel.spec.ts", "tests": [{"id": "TC_BULK_095", "title": "Carousel bulk send with one body variable on each of 2 cards is accepted and delivered", "status": "pass", "duration": 12864}]}, {"label": "Panel campaign — carousel send", "file": "campaign-carousel-send.spec.ts", "tests": [{"id": "TC_PANEL_CAR_SEND_001", "title": "Immediate carousel campaign delivers to the phone number", "status": "pass", "duration": 24597}]}, {"label": "Panel campaign — CSV headers", "file": "campaign-carousel-csv-headers.spec.ts", "tests": [{"id": "TC_PANEL_CAR_CSV_006", "title": "Representative carousel schema is available on the campaign form", "status": "pass", "duration": 3605}]}]}, {"name": "Single Message Send S2S API", "icon": "✉️", "desc": "Single send: mandatory fields, clientTransactionId validation and duplicate check, payment expiry, and templateText matching.", "suites": [{"label": "Request structure & mandatory fields", "file": "single-send-api.spec.ts", "tests": [{"id": "TC_SINGLE_002", "title": "Missing \"to\" is rejected", "status": "pass", "duration": 329}, {"id": "TC_SINGLE_003", "title": "Missing \"templateId\" is rejected", "status": "pass", "duration": 81}, {"id": "TC_SINGLE_006", "title": "Valid request is accepted", "status": "pass", "duration": 119}]}, {"label": "clientTransactionId — format validation", "file": "single-send-api.spec.ts", "tests": [{"id": "TC_SINGLE_007", "title": "Empty clientTransactionId is SYNC-rejected (unlike bulk, which accepts it at intake)", "status": "pass", "duration": 594}, {"id": "TC_SINGLE_008", "title": "Valid clientTransactionId (alphanumeric + - _ .) under 35 chars is accepted", "status": "pass", "duration": 209}, {"id": "TC_SINGLE_010", "title": "clientTransactionId at 36 chars is SYNC-rejected: exceeds max length", "status": "pass", "duration": 73}]}, {"label": "clientTransactionId — duplicate check", "file": "single-send-api.spec.ts", "tests": [{"id": "TC_SINGLE_014", "title": "Same recipient+clientTransactionId sent twice back-to-back is async-blocked as duplicate (no prior payment)", "status": "pass", "duration": 2555}]}, {"label": "Payment expiry time", "file": "single-send-api.spec.ts", "tests": [{"id": "TC_SINGLE_016", "title": "payment_expiry_time from env is accepted for PayU", "status": "pass", "duration": 197}]}, {"label": "templateText — identification modes", "file": "single-send-template-text-matching.spec.ts", "tests": [{"id": "TC_STT_001", "title": "Body text only: template found, variables extracted, message reaches Meta", "status": "pass", "duration": 8119}, {"id": "TC_STT_004", "title": "templateName + language sends that template", "status": "pass", "duration": 121}]}, {"label": "templateText — request validation", "file": "single-send-template-text-matching.spec.ts", "tests": [{"id": "TC_STT_020", "title": "Body matching no template is rejected with the closest match in detailMessage", "status": "pass", "duration": 96}]}, {"label": "templateText — richness tie-break", "file": "single-send-template-text-matching.spec.ts", "tests": [{"id": "TC_STT_037", "title": "Header beats Footer", "status": "fail", "duration": 128, "failNote": "Expected matchedTemplateName “keep_ttpr_g01_hdr” but received “keep_ttpr_g01_ftr”"}]}, {"label": "templateText — media headers", "file": "single-send-template-text-content.spec.ts", "tests": [{"id": "TC_STT_057", "title": "Image header wins when a public mediaUrl is sent, and reaches Meta", "status": "pass", "duration": 8136}]}]}, {"name": "Bulk Messaging S2S API", "icon": "🔗", "desc": "Bulk send: request validation, campaign resolution, header-type delivery, clientTransactionId rules and payment expiry.", "suites": [{"label": "Request structure & mandatory fields", "file": "bulk-send-request-validation.spec.ts", "tests": [{"id": "TC_BULK_002", "title": "Missing \"templateId\" is rejected", "status": "pass", "duration": 59}, {"id": "TC_BULK_004", "title": "Empty \"recipients\" array is rejected", "status": "pass", "duration": 53}]}, {"label": "Campaign resolution", "file": "bulk-send-campaign-and-response.spec.ts", "tests": [{"id": "TC_BULK_007", "title": "Valid campaignId is used directly and accepted", "status": "pass", "duration": 2102}]}, {"label": "Message-type coverage matrix", "file": "bulk-send-message-types.spec.ts", "tests": [{"id": "TC_BULK_035", "title": "No header: bulk send is accepted and really delivered", "status": "pass", "duration": 6202}, {"id": "TC_BULK_039", "title": "Image header: bulk send is accepted and really delivered", "status": "pass", "duration": 8688}, {"id": "TC_BULK_041", "title": "Video header: bulk send is accepted and really delivered", "status": "pass", "duration": 8689}, {"id": "TC_BULK_043", "title": "Document header: bulk send is accepted and really delivered", "status": "pass", "duration": 8629}]}, {"label": "clientTransactionId — format validation", "file": "bulk-send-payment.spec.ts", "tests": [{"id": "TC_BULK_077", "title": "Valid clientTransactionId (alphanumeric + - _ .) under 35 chars is accepted", "status": "pass", "duration": 739}, {"id": "TC_BULK_079", "title": "clientTransactionId at 36 chars is SYNC-rejected: exceeds max length", "status": "pass", "duration": 76}]}, {"label": "clientTransactionId — duplicate check", "file": "bulk-send-payment.spec.ts", "tests": [{"id": "TC_BULK_083", "title": "Same brand+recipient+clientTransactionId sent twice back-to-back is async-blocked as duplicate (no prior payment)", "status": "pass", "duration": 2453}]}, {"label": "clientTransactionId — mixed-batch rejection", "file": "bulk-send-payment.spec.ts", "tests": [{"id": "TC_BULK_091", "title": "One recipient with an invalid clientTransactionId is SYNC-rejected in the same response the other recipient is accepted in, and the accepted one still resolves via webhook", "status": "pass", "duration": 8214}]}, {"label": "Payment expiry time", "file": "bulk-send-payment.spec.ts", "tests": [{"id": "TC_BULK_093", "title": "payment_expiry_time from env is accepted for SurePay", "status": "pass", "duration": 232}]}]}, {"name": "Interactive Messaging S2S API", "icon": "💬", "desc": "Interactive send: intake validation, accepted message types and webhook status reporting.", "suites": [{"label": "Request intake & validation", "file": "interactive-send-intake.spec.ts", "tests": [{"id": "TC_INT_001", "title": "Rejects a body with no channelType", "status": "pass", "duration": 285}, {"id": "TC_INT_003", "title": "Rejects a body with no type", "status": "pass", "duration": 69}, {"id": "TC_INT_011", "title": "Rejects a send when no 24-hour window is open", "status": "pass", "duration": 82}]}, {"label": "Accepted send types", "file": "interactive-send-types-and-limits.spec.ts", "tests": [{"id": "TC_INT_020", "title": "Sends text", "status": "pass", "duration": 1418}, {"id": "TC_INT_025", "title": "Sends audio", "status": "pass", "duration": 950}, {"id": "TC_INT_029", "title": "Sends interactive reply buttons, text header", "status": "pass", "duration": 1023}, {"id": "TC_INT_031", "title": "Sends interactive list", "status": "pass", "duration": 914}, {"id": "TC_INT_035", "title": "Sends interactive carousel", "status": "pass", "duration": 1071}]}, {"label": "Webhook status reporting", "file": "interactive-send-webhooks.spec.ts", "tests": [{"id": "TC_INT_056", "title": "Reports a session send's status through to the webhook", "status": "pass", "duration": 7298}]}]}, {"name": "Template Fetch API", "icon": "🔍", "desc": "S2S template filter endpoint — baseline single-field filters.", "suites": [{"label": "Baseline — one filter field at a time", "file": "template-filter-fields.spec.ts", "tests": [{"id": "TC_TF_S2S_BASE_001", "title": "template_id: own-portfolio valid ID", "status": "pass", "duration": 114}, {"id": "TC_TF_S2S_BASE_002", "title": "template_name: valid own-portfolio name", "status": "pass", "duration": 63}]}]}, {"name": "Campaigns", "icon": "📣", "desc": "Panel campaign pages: summary, details and scheduled campaigns.", "suites": [{"label": "Campaign summary", "file": "campaign-summary.spec.ts", "tests": [{"id": "TC_PANEL_SUMMARY_001", "title": "Add Campaign from summary opens the create form", "status": "pass", "duration": 2219}, {"id": "TC_PANEL_SUMMARY_002", "title": "View campaign opens its campaign details page", "status": "pass", "duration": 2293}, {"id": "TC_PANEL_SUMMARY_004", "title": "Campaign summary shows the expected columns", "status": "pass", "duration": 2227}]}, {"label": "Campaign details", "file": "campaign-details.spec.ts", "tests": [{"id": "TC_PANEL_DETAILS_001", "title": "Campaign details shows recipient columns without asserting delivery state", "status": "pass", "duration": 3444}]}, {"label": "Scheduled campaigns", "file": "scheduled-campaigns.spec.ts", "tests": [{"id": "TC_PANEL_SCHEDULED_001", "title": "Scheduled campaigns page shows the expected columns", "status": "pass", "duration": 1727}, {"id": "TC_PANEL_SCHEDULED_002", "title": "Add Campaign from the scheduled page opens the create form", "status": "pass", "duration": 2020}]}]}, {"name": "Traffic Dashboard API", "icon": "📊", "desc": "Traffic Dashboard summary API: authorisation, method and date handling.", "suites": [{"label": "Summary — auth & method", "file": "traffic-dashboard-summary.spec.ts", "tests": [{"id": "TC_TD_SM_AUTH_001", "title": "No Authorization header → 401", "status": "pass", "duration": 80}]}, {"label": "Summary — date formats", "file": "traffic-dashboard-summary.spec.ts", "tests": [{"id": "TC_TD_SM_DATE_004", "title": "Future date range (both > today) → 200", "status": "pass", "duration": 3118}]}]}]};
+
+const checkSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 4.5L6 12L2.5 8.5" stroke="#2FD98A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const failSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M4 4L12 12M12 4L4 12" stroke="#F2665E" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+const skipSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M4 8H12" stroke="#F2C14E" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+
+function fmtDur(ms){
+  if(ms < 1000) return ms + 'ms';
+  return (ms/1000).toFixed(1) + 's';
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function iconFor(status){
+  if(status==='fail') return failSvg;
+  if(status==='skip') return skipSvg;
+  return checkSvg;
+}
+
+let showIssuesOnly = false;
+let expandedState = {};
+
+function render(){
+  const list = document.getElementById('checklist');
+  list.innerHTML = R.modules.map((mod, mi) => {
+    const allTests = mod.suites.flatMap(s => s.tests);
+    const total = allTests.length;
+    const hasFail = allTests.some(t => t.status === 'fail');
+    const hasSkip = allTests.some(t => t.status === 'skip');
+    const hasIssue = hasFail || hasSkip;
+    const markClass = hasFail ? 'fail' : (hasSkip ? 'warn' : '');
+    const markIcon = hasFail ? failSvg : (hasSkip ? skipSvg : checkSvg);
+    const badges = [];
+    if(hasFail) badges.push(`<span style="color:var(--red)">${allTests.filter(t=>t.status==='fail').length} failed</span>`);
+    if(hasSkip) badges.push(`<span style="color:var(--amber)">${allTests.filter(t=>t.status==='skip').length} skipped</span>`);
+
+    if(showIssuesOnly && !hasIssue) return '';
+
+    const suitesHtml = mod.suites.map(s => {
+      const tests = showIssuesOnly ? s.tests.filter(t => t.status !== 'pass') : s.tests;
+      if(showIssuesOnly && tests.length === 0) return '';
+      const sFail = s.tests.filter(t => t.status === 'fail').length;
+      const sSkip = s.tests.filter(t => t.status === 'skip').length;
+      const idW = Math.max(0, ...s.tests.map(t => (t.id || '').length));
+      const sNote = `${s.tests.length} check${s.tests.length === 1 ? '' : 's'}`
+        + (sFail ? ` · <span style="color:var(--red)">${sFail} failed</span>` : '')
+        + (sSkip ? ` · <span style="color:var(--amber)">${sSkip} skipped</span>` : '');
+      return `
+      <div class="suite-block">
+        <div class="suite-name"><span>${esc(s.label)}</span><span class="suite-file mono">${esc(s.file)}</span><span class="suite-n mono">${sNote}</span></div>
+        ${tests.map(t => `
+          <div class="test-line">
+            <span class="test-check">${iconFor(t.status)}</span>
+            <span class="test-title">${idW ? `<span class="tid mono" style="min-width:${idW}ch">${esc(t.id || '')}</span>` : ''}<span class="tt">${esc(t.title)}${t.failNote ? `<span class="fail-note mono">${esc(t.failNote)}</span>` : ''}${t.skipNote ? `<span class="skip-note">${esc(t.skipNote)}</span>` : ''}</span></span>
+            <span class="test-dur mono">${fmtDur(t.duration)}</span>
+          </div>`).join('')}
+      </div>`;
+    }).join('');
+
+    const isOpen = showIssuesOnly && hasIssue ? true : !!expandedState[mi];
+
+    return `
+    <div class="check-row ${isOpen ? 'open' : ''}" id="row-${mi}">
+      <div class="check-head" onclick="toggleRow(${mi})">
+        <span class="check-num mono">${String(mi+1).padStart(2,'0')}</span>
+        <span class="check-mark ${markClass}">${markIcon}</span>
+        <span class="check-icon">${mod.icon}</span>
+        <span class="check-info">
+          <div class="check-title">${esc(mod.name)}</div>
+          <div class="check-desc">${esc(mod.desc)}</div>
+        </span>
+        <span class="check-count mono">${total} checks${badges.length ? ' · ' + badges.join(' · ') : ''}</span>
+        <span class="check-chev">&#9656;</span>
+      </div>
+      <div class="check-body" id="body-${mi}" style="${isOpen ? 'max-height:none;border-top:1px solid var(--border);' : ''}">
+        <div class="check-body-inner">${suitesHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRow(mi){
+  const row = document.getElementById(`row-${mi}`);
+  const body = document.getElementById(`body-${mi}`);
+  const isOpen = row.classList.contains('open');
+  if(isOpen){
+    row.classList.remove('open');
+    body.style.maxHeight = null;
+    expandedState[mi] = false;
+  } else {
+    row.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    expandedState[mi] = true;
+  }
+}
+
+let allOpen = false;
+function toggleAll(){
+  allOpen = !allOpen;
+  document.getElementById('toggleAllBtn').textContent = allOpen ? 'Collapse all' : 'Expand all';
+  R.modules.forEach((_, mi) => { expandedState[mi] = allOpen; });
+  render();
+  if(allOpen){
+    R.modules.forEach((_, mi) => {
+      const body = document.getElementById(`body-${mi}`);
+      if(body) body.style.maxHeight = body.scrollHeight + 'px';
+    });
+  }
+}
+
+function toggleFailOnly(){
+  showIssuesOnly = !showIssuesOnly;
+  document.getElementById('failOnlyBtn').textContent = showIssuesOnly ? 'Show all' : 'Show issues only';
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
