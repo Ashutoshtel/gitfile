@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Production Health Check — 04 Nov 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0E16;
+    --bg-2:#0D131E;
+    --surface:#121927;
+    --surface-2:#161F30;
+    --border:#1F2A3B;
+    --border-soft:#182131;
+    --ink:#EAF0F6;
+    --ink-2:#B7C1D1;
+    --ink-3:#7C8AA0;
+    --mint:#2FD98A;
+    --mint-dim:rgba(47,217,138,.12);
+    --mint-line:rgba(47,217,138,.35);
+    --cyan:#5EC8F2;
+    --amber:#F2C14E;
+    --red:#F2665E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'DM Mono',monospace;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px 80px;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    background:
+      radial-gradient(ellipse 900px 500px at 12% -10%, rgba(47,217,138,.10), transparent 60%),
+      linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 100%);
+    border-bottom:1px solid var(--border-soft);
+    padding:56px 24px 40px;
+    overflow:hidden;
+  }
+  .hero-inner{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:48px;flex-wrap:wrap;}
+  .hero-text{flex:1;min-width:280px;}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--mint-dim);border:1px solid var(--mint-line);
+    color:var(--mint);border-radius:20px;padding:5px 14px;
+    font-size:13.5px;font-weight:500;margin-bottom:22px;
+  }
+  .pill.amber{background:rgba(242,193,78,.12);border-color:rgba(242,193,78,.35);color:var(--amber);}
+  .pill.amber .pill-dot{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+  .pill-dot{width:6px;height:6px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint);}
+  h1{
+    font-family:'DM Serif Display',serif;font-weight:400;
+    font-size:clamp(30px,4.2vw,46px);line-height:1.14;
+    margin:0 0 14px;color:var(--ink);
+  }
+  .hero-sub{font-size:16.5px;line-height:1.65;color:var(--ink-2);max-width:560px;margin:0 0 22px;}
+  .hero-meta{font-size:14px;color:var(--ink-3);}
+  .hero-meta b{color:var(--ink-2);font-weight:500;}
+  .hero-meta .sep{color:var(--border);margin:0 8px;}
+
+  /* ---------- GAUGE ---------- */
+  .gauge-box{position:relative;width:168px;height:168px;flex-shrink:0;}
+  .gauge-box svg{transform:rotate(-90deg);}
+  .gauge-label{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+  }
+  .gauge-num{font-family:'DM Serif Display',serif;font-size:34px;color:var(--mint);line-height:1;}
+  .gauge-cap{font-size:10.5px;color:var(--ink-3);margin-top:4px;letter-spacing:.02em;}
+
+  /* ---------- STAT STRIP ---------- */
+  .stat-strip{
+    display:flex;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    margin:36px 0 0;
+    overflow:hidden;
+  }
+  .stat{flex:1;padding:20px 16px;text-align:center;border-right:1px solid var(--border);}
+  .stat:last-child{border-right:none;}
+  .stat-num{font-family:'DM Serif Display',serif;font-size:26px;color:var(--ink);line-height:1;}
+  .stat-num.mint{color:var(--mint);}
+  .stat-num.red{color:var(--red);}
+  .stat-num.amber{color:var(--amber);}
+  .stat-cap{font-size:13px;color:var(--ink-3);margin-top:6px;}
+
+  /* ---------- CHECKLIST ---------- */
+  .section-lbl{
+    font-size:14.5px;color:var(--ink-3);margin:44px 0 14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .toggle-all{
+    background:none;border:1px solid var(--border);color:var(--ink-2);
+    font-size:13px;padding:6px 14px;border-radius:7px;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .toggle-all:hover{border-color:var(--ink-3);color:var(--ink);}
+
+  .check-row{
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin-bottom:8px;
+    background:var(--surface);
+    overflow:hidden;
+    transition:border-color .15s ease;
+  }
+  .check-row.open{border-color:var(--border-soft);}
+  .check-head{
+    display:flex;align-items:center;gap:14px;
+    padding:15px 18px;cursor:pointer;
+    user-select:none;
+  }
+  .check-num{
+    font-size:13.5px;color:var(--ink-3);width:24px;flex-shrink:0;
+  }
+  .check-mark{
+    width:22px;height:22px;border-radius:50%;
+    background:var(--mint-dim);border:1px solid var(--mint-line);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .check-mark.fail{background:rgba(242,102,94,.12);border-color:rgba(242,102,94,.35);}
+  .check-mark.warn{background:rgba(242,193,78,.12);border-color:rgba(242,193,78,.35);}
+  .check-mark svg{width:12px;height:12px;}
+  .check-icon{font-size:16px;flex-shrink:0;width:20px;text-align:center;}
+  .check-info{flex:1;min-width:0;}
+  .check-title{flex:1;font-size:17px;font-weight:600;color:var(--ink);}
+  .check-desc{font-size:13.5px;color:var(--ink-3);margin-top:3px;font-weight:400;line-height:1.4;}
+  .check-count{font-size:14px;color:var(--ink-3);flex-shrink:0;}
+  .check-chev{
+    color:var(--ink-3);transition:transform .18s ease;flex-shrink:0;
+    font-size:11px;
+  }
+  .check-row.open .check-chev{transform:rotate(90deg);}
+
+  .check-body{
+    max-height:0;overflow:hidden;
+    transition:max-height .2s ease;
+    border-top:1px solid transparent;
+  }
+  .check-row.open .check-body{border-top:1px solid var(--border);}
+  .check-body-inner{padding:6px 18px 14px 54px;}
+
+  .suite-block{margin-top:18px;}
+  .suite-name{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;font-size:15px;color:var(--cyan);margin-bottom:6px;font-weight:600;}
+  .suite-file{font-size:12px;color:var(--ink-3);font-weight:400;}
+  .suite-n{margin-left:auto;font-size:12.5px;color:var(--ink-3);font-weight:400;}
+  .test-line{
+    display:flex;align-items:baseline;gap:12px;
+    padding:7px 0;font-size:14.5px;color:var(--ink-2);
+    border-bottom:1px solid var(--border-soft);
+    line-height:1.45;
+  }
+  .test-line:last-child{border-bottom:none;}
+  .test-check{color:var(--mint);flex-shrink:0;font-size:13px;}
+  .test-check svg{width:14px;height:14px;display:block;}
+  .test-title{flex:1;line-height:1.5;min-width:0;display:flex;align-items:baseline;gap:10px;}
+  .tt{flex:1;min-width:0;}
+  .tid{flex-shrink:0;display:inline-block;box-sizing:content-box;font-size:12px;color:var(--ink-3);
+       background:var(--surface-2);border:1px solid var(--border-soft);padding:1px 7px;
+       border-radius:4px;white-space:nowrap;}
+  .fail-note{display:block;margin-top:7px;font-size:12.5px;line-height:1.55;color:var(--red);
+       background:rgba(242,102,94,.08);border:1px solid rgba(242,102,94,.28);
+       border-radius:6px;padding:7px 11px;word-break:break-word;}
+  .skip-note{display:block;margin-top:4px;color:var(--amber);font-size:12.5px;}
+  .test-dur{color:var(--ink-3);font-size:13px;flex-shrink:0;}
+
+  /* ---------- FOOTER ---------- */
+  .foot{
+    margin-top:56px;padding-top:22px;border-top:1px solid var(--border-soft);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    font-size:13.5px;color:var(--ink-3);
+  }
+  .foot b{color:var(--ink-2);font-weight:500;}
+
+  @media(max-width:640px){
+    .hero-inner{flex-direction:column;align-items:flex-start;}
+    .gauge-box{order:-1;margin:0 auto 8px;}
+    .stat-strip{flex-wrap:wrap;}
+    .stat{flex:1 1 33%;border-bottom:1px solid var(--border);}
+  }
+
+  @media(max-width:640px){
+    .check-head{flex-wrap:wrap;gap:8px 12px;padding:14px;}
+    .check-num{display:none;}
+    .check-info{flex:1 1 calc(100% - 90px);min-width:0;}
+    .check-count{order:10;padding-left:34px;font-size:13px;}
+    .check-chev{order:11;margin-left:auto;}
+    .check-body-inner{padding:4px 14px 14px 14px;}
+    .test-line{gap:10px;}
+    .test-title{flex-direction:column;align-items:flex-start;gap:5px;}
+    .tid{min-width:0 !important;}
+    .tt{overflow-wrap:anywhere;}
+    .test-dur{white-space:nowrap;}
+    .suite-n{margin-left:0;flex-basis:100%;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="pill amber"><span class="pill-dot"></span>9 checks need a look</div>
+      <h1>Production sanity — 9 failures flagged.</h1>
+      <p class="hero-sub">126 checks across 15 modules on Production after the 3 November deployment — WhatsApp and RCS together, 5 workers. 115 passed, 2 skipped and 9 failed: 8 waited out a delivery webhook or delivery status (Meta / RCS delivery), 1 needs a second RCS agent that PROD does not have.</p>
+      <div class="hero-meta mono">
+        <b>Production</b><span class="sep">·</span>04 Nov 2026<span class="sep">·</span>Ashutosh Kumar
+      </div>
+    </div>
+    <div class="gauge-box">
+      <svg width="168" height="168" viewBox="0 0 168 168">
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#1A2334" stroke-width="14"/>
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#2FD98A" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="412.9 452.4" stroke-dashoffset="0"/>
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#F2665E" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="32.3 452.4" stroke-dashoffset="-412.9"/>
+        <circle cx="84" cy="84" r="72" fill="none" stroke="#F2C14E" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="7.2 452.4" stroke-dashoffset="-445.2"/>
+      </svg>
+      <div class="gauge-label">
+        <div class="gauge-num" style="color:var(--amber);font-size:30px;">92.7%</div>
+        <div class="gauge-cap mono">pass rate</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap" style="padding-left:0;padding-right:0;">
+    <div class="stat-strip">
+      <div class="stat"><div class="stat-num">126</div><div class="stat-cap">Checks run</div></div>
+      <div class="stat"><div class="stat-num mint">115</div><div class="stat-cap">Passed</div></div>
+      <div class="stat"><div class="stat-num amber">2</div><div class="stat-cap">Skipped</div></div>
+      <div class="stat"><div class="stat-num red">9</div><div class="stat-cap">Failed</div></div>
+      <div class="stat"><div class="stat-num">18m 00s</div><div class="stat-cap">Duration</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="section-lbl">
+    <span>Verification checklist — 15 modules</span>
+    <span style="display:flex;gap:8px;">
+      <button class="toggle-all" id="failOnlyBtn" onclick="toggleFailOnly()">Show issues only</button>
+      <button class="toggle-all" id="toggleAllBtn" onclick="toggleAll()">Expand all</button>
+    </span>
+  </div>
+  <div id="checklist"></div>
+
+  <div class="foot mono">
+    <span>PeConnect CPaaS &nbsp;·&nbsp; Playwright / TypeScript</span>
+    <span>Production deployment &nbsp;·&nbsp; 04 Nov 2026 &nbsp;·&nbsp; Post-deployment sanity</span>
+  </div>
+</div>
+
+<script>
+const R = {"stats":{"total":126,"pass":115,"skip":2,"fail":9},"modules":[{"name":"Setup & Authentication","icon":"🔐","desc":"Role logins (user, executive, admin) and pointing the WABA delivery callback at this environment.","suites":[{"label":"Tests","file":"auth.setup.ts","tests":[{"id":"","title":"Authenticate user","status":"pass","duration":699},{"id":"","title":"Authenticate executive","status":"pass","duration":574},{"id":"","title":"Authenticate admin","status":"pass","duration":27400}]},{"label":"Tests","file":"webhook-callback.setup.ts","tests":[{"id":"","title":"Point WABA delivery callback at this environment","status":"pass","duration":3500}]}]},{"name":"Platform — Login, 2FA & Encryption","icon":"🛡️","desc":"Panel login, two-factor authentication, password reset and the panel API encryption protocol.","suites":[{"label":"2FA Regression - CPAAS Panel","file":"two-factor-auth.spec.ts","tests":[{"id":"TC004","title":"2FA page loads after valid credentials","status":"pass","duration":6600}]},{"label":"Login — Regression","file":"login.spec.ts","tests":[{"id":"TC_CPS_1","title":"Valid login redirects to OTP verification page","status":"pass","duration":6500},{"id":"TC_CPS_2","title":"Invalid username shows error message","status":"pass","duration":3100},{"id":"TC_CPS_3","title":"Empty username and password shows validation messages","status":"pass","duration":2300},{"id":"TC_CPS_24","title":"Login page loads with all required elements","status":"pass","duration":2300}]},{"label":"Password Reset — Regression","file":"password-reset.spec.ts","tests":[{"id":"TC_CPS_10","title":"Forgot password with valid email shows confirmation modal","status":"skip","duration":0,"skipNote":"Skipped: TEST_USER_RECOVERY_EMAIL is not set for prod"},{"id":"TC_CPS_22","title":"Valid password reset shows success toast and redirects to login","status":"skip","duration":0,"skipNote":"Skipped: TEST_RESET_KEY is not set for prod"}]},{"label":"Panel API encryption — protocol (TC_ENC_*)","file":"panel-encryption-protocol.spec.ts","tests":[{"id":"TC_ENC_001","title":"The key config matches the mode, and the panel API refuses or accepts a plain request accordingly","status":"pass","duration":425},{"id":"TC_ENC_002","title":"A list request answers 200 1200; encrypted, its response decrypts only with the RES AAD","status":"pass","duration":174}]}]},{"name":"Template List","icon":"📋","desc":"Listing columns, search, filters, pagination and row actions, plus cleanup of the templates created during the run.","suites":[{"label":"Template List — Regression","file":"template-list-filters.spec.ts","tests":[{"id":"TC_TL_010","title":"Status dropdown has correct options and count (no DELETED, no extras)","status":"pass","duration":3000},{"id":"TC_TL_014","title":"Reset clears all filters and reloads full list","status":"pass","duration":5500}]},{"label":"Template List — Regression","file":"template-list-pagination.spec.ts","tests":[{"id":"TC_TL_027","title":"Non-matching search shows empty state or zero rows","status":"pass","duration":4000}]},{"label":"Template List — Regression","file":"template-list.spec.ts","tests":[{"id":"TC_TL_003","title":"APPROVED row icons: Edit only when not order-details, not tracking and not carousel","status":"pass","duration":9200},{"id":"TC_TL_016","title":"Delete icon shows confirmation dialog","status":"pass","duration":3200},{"id":"TC_TL_034","title":"Download with Utility filter applied shows toast","status":"pass","duration":4200},{"id":"TC024","title":"Partial name search returns filtered results","status":"pass","duration":3200},{"id":"TC029","title":"Previous button is disabled on page 1","status":"pass","duration":2100},{"id":"TC031","title":"Final Category dropdown contains Marketing and Utility","status":"pass","duration":2500},{"id":"TC033","title":"Search button is enabled when template name is filled","status":"pass","duration":2100},{"id":"TC035","title":"Create Template button navigates to create page","status":"pass","duration":2700}]},{"label":"Cleanup — runs last @sanity","file":"template-cleanup.spec.ts","tests":[{"id":"TC_TL_037","title":"Delete the templates this run created (by name prefix)","status":"pass","duration":23800}]}]},{"name":"Create Template — UI","icon":"📝","desc":"Template creation through the Panel UI: submission by header type, form validation, button combinations, Order Details and Request Contact Info.","suites":[{"label":"Create Template — Button Combinations (Regression)","file":"create-template-buttons.spec.ts","tests":[{"id":"TC_CT_BC_004","title":"Quick Reply + URL + Phone all together — full combo submits and appears in list","status":"pass","duration":21900}]},{"label":"Create Template — Form Validation (Regression)","file":"create-template-form-validation.spec.ts","tests":[{"id":"TC_CT_FV_001","title":"Submit completely empty form shows all required field errors","status":"pass","duration":7100}]},{"label":"Create Template — Order Details (Regression)","file":"create-template-order-details.spec.ts","tests":[{"id":"TC_CT_OD_002","title":"ORDER DETAILS template with IMAGE header and body variable submits successfully","status":"pass","duration":17100}]},{"label":"Request Contact Info Interactive Type — Regression","file":"create-template-request-contact-info.spec.ts","tests":[{"id":"TC_CT_RCI_012","title":"Request Contact Info template (no vars) appears in template list after creation","status":"pass","duration":16300}]},{"label":"Create Template — Submission Scenarios (Regression)","file":"create-template-submit.spec.ts","tests":[{"id":"TC_CT_CS_001","title":"MARKETING template with TEXT header creates successfully","status":"pass","duration":13500},{"id":"TC_CT_CS_003","title":"Template with IMAGE header creates successfully","status":"pass","duration":14300},{"id":"TC_CT_CS_009","title":"Template with VIDEO header creates successfully","status":"pass","duration":8400},{"id":"TC_CT_CS_010","title":"Template with DOCUMENT header creates successfully","status":"pass","duration":14800}]}]},{"name":"Create Template — API","icon":"🔌","desc":"Template creation through the Panel API and the S2S API: authentication, valid payloads and Order Details.","suites":[{"label":"Create Template S2S — Authentication (TC_CT_S2S_001–003)","file":"create-template-s2s.spec.ts","tests":[{"id":"TC_CT_S2S_001","title":"generateToken with valid credentials returns a token","status":"pass","duration":277},{"id":"TC_CT_S2S_003","title":"Create without auth token returns 401 or 403","status":"pass","duration":90}]},{"label":"Create Template S2S — Basic Create (TC_CT_S2S_004)","file":"create-template-s2s.spec.ts","tests":[{"id":"TC_CT_S2S_004","title":"Minimal create-template without portfolioIds returns SUCCESS","status":"pass","duration":5300}]},{"label":"Create Template API — Order Details (TC_CT_A_048–066)","file":"create-template-api-order-details.spec.ts","tests":[{"id":"TC_CT_A_048","title":"OD template IMAGE header + ORDER_DETAILS button (MARKETING) returns SUCCESS","status":"pass","duration":6600}]},{"label":"Create Template API — Authentication (TC_CT_A_001–005)","file":"create-template-api.spec.ts","tests":[{"id":"TC_CT_A_001","title":"Request without Authorization header is rejected","status":"pass","duration":63}]},{"label":"Create Template API — Valid Payloads (TC_CT_A_006–020)","file":"create-template-api.spec.ts","tests":[{"id":"TC_CT_A_006","title":"Minimal valid payload (body only) returns SUCCESS with PENDING status","status":"pass","duration":4900}]}]},{"name":"Carousel Templates","icon":"🎠","desc":"Carousel creation (UI, Panel API, S2S API), carousel columns in the template list, and carousel sends via Single, Bulk and Panel campaigns.","suites":[{"label":"Carousel S2S create — contract and end to end","file":"create-template-s2s-carousel.spec.ts","tests":[{"id":"TC_CT_CAR_S2S_001","title":"Baseline IMAGE carousel (2 cards, carousel_index from 1) returns 201 with the documented fields and status PENDING","status":"pass","duration":37}]},{"label":"Bulk Messaging — Carousel template (TC_BULK_094–116)","file":"bulk-send-carousel.spec.ts","tests":[{"id":"TC_BULK_095","title":"Carousel bulk send with one body variable on each of 2 cards is accepted and delivered","status":"pass","duration":162000}]},{"label":"Carousel create API — contract","file":"create-template-api-carousel.spec.ts","tests":[{"id":"TC_CT_CAR_API_001","title":"Baseline valid create returns 201 with template_id and status PENDING","status":"pass","duration":17},{"id":"TC_CT_CAR_API_002","title":"List row marks the template as carousel with media, category and portfolio","status":"pass","duration":504}]},{"label":"Carousel S2S create — cards","file":"s2sCarouselTemplate.ts","tests":[{"id":"TC_CT_CAR_S2S_050","title":"1 card","status":"pass","duration":2500}]},{"label":"Single Send — Carousel template (TC_SINGLE_018–039)","file":"single-send-carousel.spec.ts","tests":[{"id":"TC_SINGLE_019","title":"Carousel send with one body variable on each of 2 cards is accepted and delivered","status":"pass","duration":150000}]},{"label":"Carousel create API — card structure","file":"create-template-api-carousel.spec.ts","tests":[{"id":"TC_CT_CAR_API_021","title":"1 card is rejected (minimum is 2)","status":"pass","duration":1900}]},{"label":"Carousel create API — template-level rules","file":"create-template-api-carousel.spec.ts","tests":[{"id":"TC_CT_CAR_API_080","title":"category UTILITY","status":"pass","duration":2500}]},{"label":"Panel carousel campaign sends","file":"campaign-carousel-send.spec.ts","tests":[{"id":"TC_PANEL_CAR_SEND_001","title":"Immediate carousel campaign delivers to the phone number","status":"fail","duration":126000,"failNote":"Message status expected /^(delivered|read)$/i but was \"PENDING\""}]},{"label":"Panel carousel campaign CSV headers","file":"campaign-carousel-csv-headers.spec.ts","tests":[{"id":"TC_PANEL_CAR_CSV_006","title":"Representative carousel schema is available on the campaign form","status":"pass","duration":12600}]},{"label":"Carousel — card count boundaries","file":"create-template-carousel-card-count.spec.ts","tests":[{"id":"TC_CT_CAR_010","title":"Builder defaults to exactly 2 cards on load","status":"pass","duration":7300}]},{"label":"Carousel — category gating","file":"create-template-carousel-category-gating.spec.ts","tests":[{"id":"TC_CT_CAR_001","title":"Carousel template type option is visible when Category = Marketing","status":"pass","duration":6500},{"id":"TC_CT_CAR_002","title":"Carousel template type option is NOT visible when Category = Utility","status":"pass","duration":7200}]},{"label":"Carousel — end-to-end matrix","file":"create-template-carousel-e2e.spec.ts","tests":[{"id":"TC_CT_CAR_060","title":"Minimum boundary: 2 cards, IMAGE, Quick Reply — end to end","status":"pass","duration":23300}]},{"label":"Carousel — required-field validation","file":"create-template-carousel-validation.spec.ts","tests":[{"id":"TC_CT_CAR_040","title":"All-or-none card body: body on one card only blocks submit","status":"pass","duration":13600}]},{"label":"Template List — Carousel columns","file":"template-list-carousel.spec.ts","tests":[{"id":"TC_TL_001","title":"Template list page loads with all 11 columns, valid data, correct formats","status":"pass","duration":2900},{"id":"TC032","title":"Table columns are in correct order","status":"pass","duration":3000},{"id":"TC_TL_038","title":"The sanity carousel fixture shows a CAROUSEL Template Type and its card count","status":"pass","duration":4600}]}]},{"name":"Single Message Send S2S API","icon":"✉️","desc":"Single send: mandatory fields, clientTransactionId validation, payment expiry, and templateText matching.","suites":[{"label":"Single Send — Request Structure / Mandatory Fields (TC_SINGLE_001–006)","file":"single-send-api.spec.ts","tests":[{"id":"TC_SINGLE_002","title":"Missing \"to\" is rejected","status":"pass","duration":266},{"id":"TC_SINGLE_003","title":"Missing \"templateId\" is rejected","status":"pass","duration":81},{"id":"TC_SINGLE_006","title":"Valid request is accepted","status":"pass","duration":100}]},{"label":"Single Send — clientTransactionId Format Validation (TC_SINGLE_007–013)","file":"single-send-api.spec.ts","tests":[{"id":"TC_SINGLE_007","title":"Empty clientTransactionId is SYNC-rejected (unlike bulk, which accepts it at intake)","status":"pass","duration":7700},{"id":"TC_SINGLE_008","title":"Valid clientTransactionId (alphanumeric + - _ .) under 35 chars is accepted","status":"pass","duration":182},{"id":"TC_SINGLE_010","title":"clientTransactionId at 36 chars is SYNC-rejected: exceeds max length","status":"pass","duration":68}]},{"label":"Single Send — clientTransactionId Duplicate/Dedup (TC_SINGLE_014–015)","file":"single-send-api.spec.ts","tests":[{"id":"TC_SINGLE_014","title":"Same recipient+clientTransactionId sent twice back-to-back is async-blocked as duplicate (no prior payment)","status":"pass","duration":2600}]},{"label":"Single Send — payment_expiry_time (TC_SINGLE_016–017)","file":"single-send-api.spec.ts","tests":[{"id":"TC_SINGLE_016","title":"payment_expiry_time from env is accepted for PayU","status":"pass","duration":183}]},{"label":"Single Send templateText — Media headers (TC_STT_056–063, 082–083)","file":"single-send-template-text-content.spec.ts","tests":[{"id":"TC_STT_057","title":"Image header wins when a public mediaUrl is sent, and reaches Meta","status":"pass","duration":156000}]},{"label":"Single Send templateText — Identification modes (TC_STT_001–010)","file":"single-send-template-text-matching.spec.ts","tests":[{"id":"TC_STT_001","title":"Body text only: template found, variables extracted, message reaches Meta","status":"pass","duration":156000},{"id":"TC_STT_004","title":"templateName + language sends that template","status":"pass","duration":99}]},{"label":"Single Send templateText — Request validation (TC_STT_011–025)","file":"single-send-template-text-matching.spec.ts","tests":[{"id":"TC_STT_020","title":"Body matching no template is rejected with the closest match in detailMessage","status":"pass","duration":113}]},{"label":"Single Send templateText — Richness tie-break (TC_STT_037–048)","file":"single-send-template-text-matching.spec.ts","tests":[{"id":"TC_STT_037","title":"Header beats Footer","status":"pass","duration":103}]}]},{"name":"Bulk Messaging S2S API","icon":"🔗","desc":"Bulk send: request validation, campaign resolution, header-type delivery, clientTransactionId rules and payment expiry.","suites":[{"label":"Bulk Messaging — Campaign Resolution (TC_BULK_007–013)","file":"bulk-send-campaign-and-response.spec.ts","tests":[{"id":"TC_BULK_007","title":"Valid campaignId is used directly and accepted","status":"pass","duration":2000}]},{"label":"Bulk Messaging — Message-Type Coverage Matrix (TC_BULK_035–051)","file":"bulk-send-message-types.spec.ts","tests":[{"id":"TC_BULK_035","title":"No header: bulk send is accepted and really delivered","status":"fail","duration":132000,"failNote":"[TC_BULK_035] no DELIVERY webhook arrived for recordId 37bd170f-5722-410a-9d59-0cf342f98461 within 120000ms"},{"id":"TC_BULK_039","title":"Image header: bulk send is accepted and really delivered","status":"fail","duration":126000,"failNote":"[TC_BULK_039] no DELIVERY webhook arrived for recordId b4899f1d-ac74-4d06-a76f-0d91d43e8db8 within 120000ms"},{"id":"TC_BULK_041","title":"Video header: bulk send is accepted and really delivered","status":"fail","duration":126000,"failNote":"[TC_BULK_041] no DELIVERY webhook arrived for recordId f3880571-364c-4ae5-91ec-1f68cdecb4bd within 120000ms"},{"id":"TC_BULK_043","title":"Document header: bulk send is accepted and really delivered","status":"fail","duration":126000,"failNote":"[TC_BULK_043] no DELIVERY webhook arrived for recordId c4f8073c-bf1c-435d-a7fc-0e8f4b11a53b within 120000ms"}]},{"label":"Bulk Messaging — clientTransactionId Format Validation (TC_BULK_076–082)","file":"bulk-send-payment.spec.ts","tests":[{"id":"TC_BULK_077","title":"Valid clientTransactionId (alphanumeric + - _ .) under 35 chars is accepted","status":"pass","duration":7900},{"id":"TC_BULK_079","title":"clientTransactionId at 36 chars is SYNC-rejected: exceeds max length","status":"pass","duration":79}]},{"label":"Bulk Messaging — clientTransactionId Duplicate/Dedup (TC_BULK_083–086)","file":"bulk-send-payment.spec.ts","tests":[{"id":"TC_BULK_083","title":"Same brand+recipient+clientTransactionId sent twice back-to-back is async-blocked as duplicate (no prior payment)","status":"pass","duration":2600}]},{"label":"Bulk Messaging — clientTransactionId Mixed-Batch SYNC Rejection (TC_BULK_091)","file":"bulk-send-payment.spec.ts","tests":[{"id":"TC_BULK_091","title":"One recipient with an invalid clientTransactionId is SYNC-rejected in the same response the other recipient is accepted in, and the accepted one still resolves via webhook","status":"fail","duration":120000,"failNote":"[TC_BULK_091] no DELIVERY webhook arrived for recordId 13a05ce0-4975-4f21-9763-8ab8c45ccd6f within 120000ms"}]},{"label":"Bulk Messaging — payment_expiry_time (TC_BULK_092–093)","file":"bulk-send-payment.spec.ts","tests":[{"id":"TC_BULK_093","title":"payment_expiry_time from env is accepted for SurePay","status":"pass","duration":8300}]},{"label":"Bulk Messaging — Request Structure / Mandatory Fields (TC_BULK_001–006)","file":"bulk-send-request-validation.spec.ts","tests":[{"id":"TC_BULK_002","title":"Missing \"templateId\" is rejected","status":"pass","duration":67},{"id":"TC_BULK_004","title":"Empty \"recipients\" array is rejected","status":"pass","duration":53}]}]},{"name":"Interactive Messaging S2S API","icon":"💬","desc":"Interactive send: intake validation, accepted message types and webhook status reporting.","suites":[{"label":"Interactive Send API — intake","file":"interactive-send-intake.spec.ts","tests":[{"id":"","title":"TC_INT_001 rejects a body with no channelType","status":"pass","duration":248},{"id":"","title":"TC_INT_003 rejects a body with no type","status":"pass","duration":62},{"id":"","title":"TC_INT_011 rejects a send when no 24-hour window is open","status":"pass","duration":132}]},{"label":"Interactive Send API — accepted send types","file":"interactive-send-types-and-limits.spec.ts","tests":[{"id":"","title":"TC_INT_020 sends text","status":"pass","duration":18900},{"id":"","title":"TC_INT_025 sends audio","status":"pass","duration":746},{"id":"","title":"TC_INT_029 sends interactive reply buttons, text header","status":"pass","duration":856},{"id":"","title":"TC_INT_031 sends interactive list","status":"pass","duration":795},{"id":"","title":"TC_INT_035 sends interactive carousel","status":"pass","duration":786}]},{"label":"Interactive Send API — webhooks","file":"interactive-send-webhooks.spec.ts","tests":[{"id":"","title":"TC_INT_056 reports a session send's status through to the webhook","status":"pass","duration":3200}]}]},{"name":"Template Fetch API","icon":"🔍","desc":"S2S template filter endpoint — baseline single-field filters.","suites":[{"label":"TC_TF_S2S_BASE — Baseline (one field at a time)","file":"template-filter-fields.spec.ts","tests":[{"id":"","title":"TC_TF_S2S_BASE_001 — template_id: own-portfolio valid ID","status":"pass","duration":321},{"id":"","title":"TC_TF_S2S_BASE_002 — template_name: valid own-portfolio name","status":"pass","duration":84}]}]},{"name":"Campaigns","icon":"📣","desc":"Panel campaign pages: summary, details and scheduled campaigns.","suites":[{"label":"Campaign details","file":"campaign-details.spec.ts","tests":[{"id":"TC_PANEL_DETAILS_001","title":"Campaign details shows recipient columns without asserting delivery state","status":"pass","duration":5000}]},{"label":"Campaign summary","file":"campaign-summary.spec.ts","tests":[{"id":"TC_PANEL_SUMMARY_001","title":"Add Campaign from summary opens the create form","status":"pass","duration":5400},{"id":"TC_PANEL_SUMMARY_002","title":"View campaign opens its campaign details page","status":"pass","duration":2700},{"id":"TC_PANEL_SUMMARY_004","title":"Campaign summary shows the expected columns","status":"pass","duration":2600}]},{"label":"Scheduled campaigns","file":"scheduled-campaigns.spec.ts","tests":[{"id":"TC_PANEL_SCHEDULED_001","title":"Scheduled campaigns page shows the expected columns","status":"pass","duration":2300},{"id":"TC_PANEL_SCHEDULED_002","title":"Add Campaign from the scheduled page opens the create form","status":"pass","duration":3900}]}]},{"name":"Traffic Dashboard API","icon":"📊","desc":"Traffic Dashboard summary API: authorisation, method and date handling.","suites":[{"label":"Traffic Dashboard — Summary Auth & Method (TC_TD_SM_AUTH_*)","file":"traffic-dashboard-summary.spec.ts","tests":[{"id":"","title":"TC_TD_SM_AUTH_001 — no Authorization header → 401","status":"pass","duration":90}]},{"label":"Traffic Dashboard — Summary Date Formats (TC_TD_SM_DATE_*)","file":"traffic-dashboard-summary.spec.ts","tests":[{"id":"","title":"TC_TD_SM_DATE_004 — future date range (both > today) → 200","status":"pass","duration":4600}]}]},{"name":"RCS Templates","icon":"🧩","desc":"RCS template API (read and create) and the panel UI: create (plain text, standalone card, carousel), list, search, edit, delete, preview and navigation.","suites":[{"label":"RCS template API — list","file":"rcs-template-api-read.spec.ts","tests":[{"id":"RCS_TPL_API_001","title":"List with a valid token answers 200 1200 with a page envelope","status":"pass","duration":179},{"id":"RCS_TPL_API_002","title":"No token is refused 401 1401","status":"pass","duration":79}]},{"label":"RCS template API — create","file":"rcs-template-api-write.spec.ts","tests":[{"id":"RCS_TPL_API_017","title":"A valid basic text template is created ACTIVE, version 1","status":"fail","duration":4,"failNote":"The cases need a second RCS agent of BRAND_001 in portfolio 1"}]},{"label":"RCS template API — get by id","file":"rcs-template-api-read.spec.ts","tests":[{"id":"RCS_TPL_API_010","title":"Get by id returns the full template","status":"pass","duration":180}]},{"label":"RCS template — carousel","file":"rcs-template-create-carousel.spec.ts","tests":[{"id":"RCS_TPL_381","title":"A full carousel of three cards with media, card buttons and chips is created and listed","status":"pass","duration":18200}]},{"label":"RCS template — create plain text","file":"rcs-template-create-plain-text.spec.ts","tests":[{"id":"RCS_TPL_113","title":"An empty message is refused inline and nothing is sent","status":"pass","duration":7800},{"id":"RCS_TPL_116","title":"160 characters is created as basic text with no dialog, and listed","status":"pass","duration":8400}]},{"label":"RCS template — standalone card","file":"rcs-template-create-standalone-card.spec.ts","tests":[{"id":"RCS_TPL_225","title":"A title with a variable needs its sample and is created with card_1_title_1","status":"pass","duration":9500}]},{"label":"RCS template — edit","file":"rcs-template-edit.spec.ts","tests":[{"id":"RCS_TPL_461","title":"The message and the variable samples are pre-filled","status":"pass","duration":4800}]},{"label":"RCS template list — delete","file":"rcs-template-list-delete.spec.ts","tests":[{"id":"RCS_TPL_490","title":"Confirming deletes an ACTIVE template: toast, the row leaves the list and is listed as DELETED with View only","status":"pass","duration":8000}]},{"label":"RCS template list — summary","file":"rcs-template-list-summary.spec.ts","tests":[{"id":"RCS_TPL_015","title":"Every row of page 1 shows what the list API returned for it","status":"pass","duration":6400}]},{"label":"RCS template — navigation","file":"rcs-template-navigation.spec.ts","tests":[{"id":"RCS_TPL_002","title":"Summary opens the RCS template list","status":"pass","duration":7100}]},{"label":"RCS template list — search","file":"rcs-template-list-search.spec.ts","tests":[{"id":"RCS_TPL_034","title":"Picking a suggested name filters the list by that template","status":"pass","duration":7800}]},{"label":"RCS template — view","file":"rcs-template-preview.spec.ts","tests":[{"id":"RCS_TPL_479","title":"Template details match the stored template","status":"pass","duration":3700}]}]},{"name":"RCS Campaigns","icon":"📨","desc":"RCS campaign create via API and UI, real execution of a keep_rcs_ template, scheduling, list filters and the messages view.","suites":[{"label":"RCS campaign API — create","file":"rcs-campaign-api-create.spec.ts","tests":[{"id":"RCS_CMP_API_001","title":"A valid campaign is created as IN_PROGRESS and stored against the template and agent","status":"pass","duration":427}]},{"label":"RCS campaign — create form","file":"rcs-campaign-create-form.spec.ts","tests":[{"id":"RCS_CMP_101","title":"Execute on an empty form names every missing field and sends nothing","status":"pass","duration":7200}]},{"label":"RCS campaign — execute every template shape","file":"rcs-campaign-execute-templates.spec.ts","tests":[{"id":"RCS_CMP_002","title":"keep_rcs_text_vars (plain text, three variables) is executed and sent","status":"fail","duration":78000,"failNote":"webhook: SEND_MESSAGE_SUCCESS for message 39d6c867-fc3e-4c7e-810e-a2df7cd63508 did not arrive within 60s — got []"}]},{"label":"RCS campaign list — filters","file":"rcs-campaign-list-filters.spec.ts","tests":[{"id":"RCS_CMP_LIST_005","title":"The name filter suggests campaigns by prefix and lists the one picked","status":"pass","duration":9900}]},{"label":"RCS campaign — schedule","file":"rcs-campaign-schedule.spec.ts","tests":[{"id":"RCS_CMP_112","title":"A campaign scheduled two minutes ahead is held, listed as scheduled, then sent at its time","status":"fail","duration":174000,"failNote":"webhook: SEND_MESSAGE_SUCCESS for message ec1bd33c-936c-4e95-8cb9-26e3cdfafcaa did not arrive within 60s — got []"}]},{"label":"RCS campaign — messages","file":"rcs-campaign-messages.spec.ts","tests":[{"id":"RCS_CMP_MSG_001","title":"Every record is listed with its number, creation and failure times and failure reason","status":"pass","duration":5000}]}]},{"name":"RCS Dashboard & Reports","icon":"📈","desc":"RCS dashboard status tiles and counts, the campaign summary report and the failure report.","suites":[{"label":"RCS dashboard — counts","file":"rcs-dashboard-counts.spec.ts","tests":[{"id":"RCS_DASH_005","title":"Every tile counts exactly the messages the message list shows for that card","status":"pass","duration":4900}]},{"label":"RCS dashboard — overview","file":"rcs-dashboard-overview.spec.ts","tests":[{"id":"RCS_DASH_001","title":"Every status tile shows the summary count, with its percent of Received","status":"pass","duration":7000},{"id":"RCS_DASH_003","title":"A campaign whose rows all fail validation is counted as received and failed, and listed as Completed","status":"pass","duration":7800}]},{"label":"RCS report — campaign summary","file":"rcs-campaign-summary-report.spec.ts","tests":[{"id":"RCS_RPT_CS_001","title":"Each row shows the campaign, its template and type, agent, created date and every count with its percent; there is no Invalid column","status":"pass","duration":6700}]},{"label":"RCS report — failure","file":"rcs-failure-report.spec.ts","tests":[{"id":"RCS_RPT_FR_001","title":"A campaign's validation failures are listed with campaign, number, failure code, reason, status and time","status":"pass","duration":6900}]}]}]};
+
+const checkSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 4.5L6 12L2.5 8.5" stroke="#2FD98A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const failSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M4 4L12 12M12 4L4 12" stroke="#F2665E" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+const skipSvg = `<svg viewBox="0 0 16 16" fill="none"><path d="M4 8H12" stroke="#F2C14E" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+
+function fmtDur(ms){
+  if(ms < 1000) return ms + 'ms';
+  return (ms/1000).toFixed(1) + 's';
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function iconFor(status){
+  if(status==='fail') return failSvg;
+  if(status==='skip') return skipSvg;
+  return checkSvg;
+}
+
+let showIssuesOnly = false;
+let expandedState = {};
+
+function render(){
+  const list = document.getElementById('checklist');
+  list.innerHTML = R.modules.map((mod, mi) => {
+    const allTests = mod.suites.flatMap(s => s.tests);
+    const total = allTests.length;
+    const hasFail = allTests.some(t => t.status === 'fail');
+    const hasSkip = allTests.some(t => t.status === 'skip');
+    const hasIssue = hasFail || hasSkip;
+    const markClass = hasFail ? 'fail' : (hasSkip ? 'warn' : '');
+    const markIcon = hasFail ? failSvg : (hasSkip ? skipSvg : checkSvg);
+    const badges = [];
+    if(hasFail) badges.push(`<span style="color:var(--red)">${allTests.filter(t=>t.status==='fail').length} failed</span>`);
+    if(hasSkip) badges.push(`<span style="color:var(--amber)">${allTests.filter(t=>t.status==='skip').length} skipped</span>`);
+
+    if(showIssuesOnly && !hasIssue) return '';
+
+    const suitesHtml = mod.suites.map(s => {
+      const tests = showIssuesOnly ? s.tests.filter(t => t.status !== 'pass') : s.tests;
+      if(showIssuesOnly && tests.length === 0) return '';
+      const sFail = s.tests.filter(t => t.status === 'fail').length;
+      const sSkip = s.tests.filter(t => t.status === 'skip').length;
+      const idW = Math.max(0, ...s.tests.map(t => (t.id || '').length));
+      const sNote = `${s.tests.length} check${s.tests.length === 1 ? '' : 's'}`
+        + (sFail ? ` · <span style="color:var(--red)">${sFail} failed</span>` : '')
+        + (sSkip ? ` · <span style="color:var(--amber)">${sSkip} skipped</span>` : '');
+      return `
+      <div class="suite-block">
+        <div class="suite-name"><span>${esc(s.label)}</span><span class="suite-file mono">${esc(s.file)}</span><span class="suite-n mono">${sNote}</span></div>
+        ${tests.map(t => `
+          <div class="test-line">
+            <span class="test-check">${iconFor(t.status)}</span>
+            <span class="test-title">${idW ? `<span class="tid mono" style="min-width:${idW}ch">${esc(t.id || '')}</span>` : ''}<span class="tt">${esc(t.title)}${t.failNote ? `<span class="fail-note mono">${esc(t.failNote)}</span>` : ''}${t.skipNote ? `<span class="skip-note">${esc(t.skipNote)}</span>` : ''}</span></span>
+            <span class="test-dur mono">${fmtDur(t.duration)}</span>
+          </div>`).join('')}
+      </div>`;
+    }).join('');
+
+    const isOpen = showIssuesOnly && hasIssue ? true : !!expandedState[mi];
+
+    return `
+    <div class="check-row ${isOpen ? 'open' : ''}" id="row-${mi}">
+      <div class="check-head" onclick="toggleRow(${mi})">
+        <span class="check-num mono">${String(mi+1).padStart(2,'0')}</span>
+        <span class="check-mark ${markClass}">${markIcon}</span>
+        <span class="check-icon">${mod.icon}</span>
+        <span class="check-info">
+          <div class="check-title">${esc(mod.name)}</div>
+          <div class="check-desc">${esc(mod.desc)}</div>
+        </span>
+        <span class="check-count mono">${total} checks${badges.length ? ' · ' + badges.join(' · ') : ''}</span>
+        <span class="check-chev">&#9656;</span>
+      </div>
+      <div class="check-body" id="body-${mi}" style="${isOpen ? 'max-height:none;border-top:1px solid var(--border);' : ''}">
+        <div class="check-body-inner">${suitesHtml}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRow(mi){
+  const row = document.getElementById(`row-${mi}`);
+  const body = document.getElementById(`body-${mi}`);
+  const isOpen = row.classList.contains('open');
+  if(isOpen){
+    row.classList.remove('open');
+    body.style.maxHeight = null;
+    expandedState[mi] = false;
+  } else {
+    row.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    expandedState[mi] = true;
+  }
+}
+
+let allOpen = false;
+function toggleAll(){
+  allOpen = !allOpen;
+  document.getElementById('toggleAllBtn').textContent = allOpen ? 'Collapse all' : 'Expand all';
+  R.modules.forEach((_, mi) => { expandedState[mi] = allOpen; });
+  render();
+  if(allOpen){
+    R.modules.forEach((_, mi) => {
+      const body = document.getElementById(`body-${mi}`);
+      if(body) body.style.maxHeight = body.scrollHeight + 'px';
+    });
+  }
+}
+
+function toggleFailOnly(){
+  showIssuesOnly = !showIssuesOnly;
+  document.getElementById('failOnlyBtn').textContent = showIssuesOnly ? 'Show all' : 'Show issues only';
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
